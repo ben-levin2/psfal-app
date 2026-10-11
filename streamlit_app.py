@@ -134,7 +134,7 @@ for c, g in zip(cols, D["games"]):
             st.markdown(f"### {g['pf']}–{g['pa']}")
             st.markdown((":green[**Win**]" if g["res"] == "W" else ":red[**Loss**]"))
 
-tabs = st.tabs(["Overview", "2026 season", "Gap to champions", "Roster", "Players", "Market and portal", "Decision tool", "Status and limits"])
+tabs = st.tabs(["Overview", "2026 season", "Gap to champions", "Roster", "Players", "Market and portal", "Decision tool", "Status and limits", "Big Ten benchmark"])
 
 # ---------------------------------------------------------------- overview
 with tabs[0]:
@@ -363,3 +363,12 @@ with tabs[7]:
     st.subheader("How the tests were run")
     st.write("Hypotheses were written before looking at results. Models were fitted on earlier seasons and judged on later ones, so nothing from the future leaked in. A result counted as supported only if the effect pointed "
              "the same way in both groups and the later group's 95% range excluded zero. Several tests came back negative, and those are reported as findings.")
+
+# ---------------------------------------------------------------- Big Ten benchmark (Child 15)
+with tabs[8]:
+    try:
+        from child15.page import render as _render_child15
+    except Exception as ex:
+        st.error(f"The Big Ten benchmark page could not be loaded ({type(ex).__name__}). The rest of the dashboard is unaffected.")
+    else:
+        _render_child15(BLUE, GRAY, GOLD, style, grouped_hbar)
