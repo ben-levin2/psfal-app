@@ -2,19 +2,22 @@
 
 They use a synthetic dashboard_data.json fixture (the real one is not in the repo) copied with the app into a temp folder.
 """
-import json, re, shutil, subprocess, sys, tempfile, unittest
+import io, json, re, shutil, subprocess, sys, tempfile, unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "tests"))
 from make_fixture import fixture  # noqa: E402
 from child15.report_reader import ReportError, load_report, parse_report, METRICS  # noqa: E402
+from table_copy import to_tsv  # noqa: E402
+import pandas as pd  # noqa: E402
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
 
 def make_app(tmp, with_report=True, report_text=None, app_src=None):
     tmp = Path(tmp)
     (tmp / "streamlit_app.py").write_text(app_src if app_src is not None else (ROOT / "streamlit_app.py").read_text())
+    shutil.copy(ROOT / "table_copy.py", tmp / "table_copy.py")
     (tmp / "dashboard_data.json").write_text(json.dumps(fixture()))
     shutil.copytree(ROOT / "child15", tmp / "child15", ignore=shutil.ignore_patterns("__pycache__", "*.md"))
     if with_report:
@@ -176,10 +179,67 @@ class AppTests(unittest.TestCase):
             self.assertEqual(snap(a), snap(b))
             self.assertEqual(len(a.tabs), 8); self.assertEqual(len(b.tabs), 9)
 
+    def test_every_table_has_collapsed_copy_section_matching_it(self):
+        """Each table is followed by a collapsed copy section whose text is that table: headers first, same rows, same order."""
+        with tempfile.TemporaryDirectory() as d:
+            at = run(make_app(d))
+            self.assertFalse(at.exception)
+            self.assertEqual(len(at.dataframe), 10)
+            for t in at.tabs:
+                dfs, codes, exps = list(t.dataframe), list(t.code), list(t.expander)
+                self.assertEqual((len(codes), len(exps)), (len(dfs), len(dfs)), t.label)
+                for df, code, exp in zip(dfs, codes, exps):
+                    self.assertFalse(exp.proto.expanded, t.label)
+                    self.assertEqual(code.value, to_tsv(df.value), t.label)
+                    self.assertEqual(code.value.split("\n")[0].split("\t"), [str(c) for c in df.value.columns], t.label)
+
+    def test_copy_text_follows_widgets(self):
+        """The Child 15 copy text tracks the period and the fixed-18 checkbox, and the decision-tool copy text tracks the cost slider."""
+        with tempfile.TemporaryDirectory() as d:
+            at = run(make_app(d))
+            c15 = lambda: [c.value for c in at.tabs[8].code][0]
+            self.assertEqual(len(c15().splitlines()), 1 + 24)
+            at.radio(key="c15_window").set_value("2021-2025").run()
+            at.checkbox(key="c15_fixed").set_value(True).run()
+            rows = c15().splitlines()
+            self.assertEqual(len(rows), 1 + 32)
+            self.assertTrue(all(r.split("\t")[8] == "2021-2025" for r in rows[1:]))
+            choice = lambda: {r.split("\t")[-1] for r in at.tabs[6].code[0].value.splitlines()[1:]}
+            at.slider[0].set_value(1.2).run()
+            self.assertEqual(choice(), {"Transfer"})
+            at.slider[0].set_value(4.0).run()
+            self.assertEqual(choice(), {"Recruit"})
+
     def test_no_network_or_recalc_in_child15(self):
         src = (ROOT / "child15" / "page.py").read_text() + (ROOT / "child15" / "report_reader.py").read_text()
         for bad in ("urllib", "requests", "read_csv", "mean(", "std(", "zscore"):
             self.assertNotIn(bad, src, bad)
+
+
+class TableCopyTests(unittest.TestCase):
+    def test_headers_rows_and_order(self):
+        df = pd.DataFrame({"Player": ["A", "B"], "Rating": [90.5, 88], "Pos": ["QB", "WR"]})
+        self.assertEqual(to_tsv(df), "Player\tRating\tPos\nA\t90.5\tQB\nB\t88.0\tWR")
+
+    def test_index_left_out(self):
+        df = pd.DataFrame({"x": [1, 2]}, index=[7, 9])
+        self.assertEqual(to_tsv(df), "x\n1\n2")
+
+    def test_cells_cannot_break_columns_or_rows(self):
+        df = pd.DataFrame({"Note": ["one\ttab", "two\nlines\r\nhere", None], "n": [1.0, float("nan"), 3.0]})
+        self.assertEqual(to_tsv(df), "Note\tn\none tab\t1.0\ntwo lines here\t\n\t3.0")
+
+    def test_round_trips_like_a_spreadsheet_paste(self):
+        """Read the text back the way a spreadsheet splits a paste (tabs = columns, lines = rows): headers and every value survive."""
+        df = pd.DataFrame({"Metric": ["SP+ offense", "PPA defense"], "Gap in SD (+ = PSU better)": [-1.4, 0.25], "Programs": [7, 4], "Note": ["W 30–20", "−1.9 to +5.6"]})
+        back = pd.read_csv(io.StringIO(to_tsv(df)), sep="\t")
+        pd.testing.assert_frame_equal(back, df)
+
+    def test_does_not_modify_the_table(self):
+        df = pd.DataFrame({"a": ["x\ty"], "b": [None]})
+        before = df.copy()
+        to_tsv(df)
+        pd.testing.assert_frame_equal(df, before)
 
 
 if __name__ == "__main__":
