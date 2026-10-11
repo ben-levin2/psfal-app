@@ -2,6 +2,7 @@
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from table_copy import copy_section
 
 from .report_reader import GROUPS, METRICS, ReportError, load_report
 
@@ -91,6 +92,7 @@ def render(blue, gray, gold, style, grouped_hbar):
                  column_config={"Gap in SD (+ = PSU better)": st.column_config.NumberColumn(format="%.2f"),
                                 "Penn State": st.column_config.NumberColumn(format="%.3f"), "Group mean": st.column_config.NumberColumn(format="%.3f"),
                                 "Raw gap (PSU minus group)": st.column_config.NumberColumn(format="%.3f")})
+    copy_section(df)
     st.caption("Raw gaps are in the metric's own unit and keep its direction, so a negative raw gap on a defense measure is good for Penn State. The standardized gap is already flipped. "
                "Recruiting points and talent have fewer team-seasons because they are missing for 2014 and for a few teams; zero talent values are treated as missing.")
 

@@ -11,6 +11,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from table_copy import copy_section
+
 st.set_page_config(page_title="PSFAL: Penn State football analytics lab", page_icon="🦁", layout="wide")
 
 BLUE, GRAY, GOLD, GOOD, BAD = "#1E407C", "#A3AEC2", "#D4A63C", "#2A7A58", "#AE4337"
@@ -156,7 +158,9 @@ with tabs[0]:
     st.caption("Tested: the question was written down before running it and checked on later seasons. Descriptive: what happened, with no cause claimed. "
                "Assumption: the answer depends on a number nobody has measured.")
     st.subheader("Games left")
-    st.dataframe(pd.DataFrame(D["schedule"], columns=["Date", "Opponent", "Site"]), hide_index=True, width="stretch")
+    sched = pd.DataFrame(D["schedule"], columns=["Date", "Opponent", "Site"])
+    st.dataframe(sched, hide_index=True, width="stretch")
+    copy_section(sched)
     st.caption("There is a bye on October 24. Confirm the away dates on the official schedule.")
 
 # ---------------------------------------------------------------- season
@@ -167,8 +171,9 @@ with tabs[1]:
     st.plotly_chart(grouped_hbar(labels, [("Offense", [g["o"] for g in D["games"]]), ("Defense", [g["d"] for g in D["games"]])], [BLUE, GOLD], xrange=[0, 110], fmt="%{x:.0f}"),
                     width="stretch")
     st.subheader("What stood out")
-    st.dataframe(pd.DataFrame([{"Week": g["wk"], "Opponent": g["opp"], "Result": f"{g['res']} {g['pf']}–{g['pa']}", "What stands out": g["note"]} for g in D["games"]]),
-                 hide_index=True, width="stretch")
+    standout = pd.DataFrame([{"Week": g["wk"], "Opponent": g["opp"], "Result": f"{g['res']} {g['pf']}–{g['pa']}", "What stands out": g["note"]} for g in D["games"]])
+    st.dataframe(standout, hide_index=True, width="stretch")
+    copy_section(standout)
     st.subheader("Three numbers to watch")
     w = st.columns(len(D["watch"]))
     for c, x in zip(w, D["watch"]):
@@ -199,7 +204,9 @@ with tabs[2]:
     st.plotly_chart(style(fig, 280, legend=False), width="stretch")
     st.caption("Ohio State and Michigan are 18 of Penn State's 48 losses (1–11 and 3–7). Close games are 26–29, about a coin flip, so luck in close games does not explain the pattern.")
     st.subheader("Season by season")
-    st.dataframe(pd.DataFrame(D["seasons"], columns=["Season", "Record", "SP+ rank", "Talent rank", "Class rank"]), hide_index=True, width="stretch")
+    seasons = pd.DataFrame(D["seasons"], columns=["Season", "Record", "SP+ rank", "Talent rank", "Class rank"])
+    st.dataframe(seasons, hide_index=True, width="stretch")
+    copy_section(seasons)
 
 # ---------------------------------------------------------------- roster
 with tabs[3]:
@@ -220,6 +227,7 @@ with tabs[3]:
     F = pd.DataFrame(D["forecast"], columns=["Group", "Players in 2026", "Expected back", "Low (80%)", "High (80%)"])
     st.markdown("**Expected returners in 2027 by position group (not validated)**")
     st.dataframe(F, hide_index=True, width="stretch")
+    copy_section(F)
     st.caption("Leaving for any reason counts: graduation, the NFL, transfer or a cut. Early NFL departures and portal exits cannot be predicted from this data.")
 
 # ---------------------------------------------------------------- players
@@ -235,7 +243,9 @@ with tabs[4]:
     a, b = st.columns(2)
     with a:
         st.markdown("**A rating matters most early**  " + BADGE["descriptive"])
-        st.dataframe(pd.DataFrame(D["ratingCorr"], columns=["Year", "Correlation", "Players"]), hide_index=True, width="stretch")
+        rc = pd.DataFrame(D["ratingCorr"], columns=["Year", "Correlation", "Players"])
+        st.dataframe(rc, hide_index=True, width="stretch")
+        copy_section(rc)
     with b:
         st.markdown("**Production carries over, improvement does not**  " + BADGE["descriptive"])
         st.write("A player's production percentile correlates **0.71** with his next-year percentile. His year-to-year change correlates **−0.27** with the change the year before "
@@ -254,10 +264,12 @@ with tabs[4]:
     with a:
         st.markdown("**Penn State's 2025 class: most likely strong producers by 2027**")
         wc = pd.DataFrame(D["watchClass"], columns=["Player", "Pos", "Rating", "2025 output", "Chance"]); wc["Chance"] = (wc["Chance"] * 100).round(0).astype(int).astype(str) + "%"
-        st.dataframe(wc, hide_index=True, width="stretch"); st.caption("A ranking aid with wide uncertainty.")
+        st.dataframe(wc, hide_index=True, width="stretch"); copy_section(wc); st.caption("A ranking aid with wide uncertainty.")
     with b:
         st.markdown("**Penn State's 2026 transfers: highest production so far**")
-        st.dataframe(pd.DataFrame(D["transfers"], columns=["Player", "Pos", "From", "So far"]), hide_index=True, width="stretch")
+        tr = pd.DataFrame(D["transfers"], columns=["Player", "Pos", "From", "So far"])
+        st.dataframe(tr, hide_index=True, width="stretch")
+        copy_section(tr)
         st.caption("Five games, ranked within Penn State's own position groups. Eight of the ten are Iowa State transfers; that does not show they are better than other transfers.")
 
 # ---------------------------------------------------------------- market and portal
@@ -325,9 +337,11 @@ with tabs[6]:
     fig.add_vline(x=cost, line_color=BLUE, line_width=3, annotation_text="Your cost", annotation_position="top")
     fig.update_layout(yaxis=dict(autorange="reversed")); fig.update_xaxes(range=[0.8, 4.2], title="Cost of a transfer spot relative to a recruit spot")
     st.plotly_chart(style(fig, 330, legend=False), width="stretch")
-    st.dataframe(Y[["Position", "Recruits strong", "Transfers strong", "Break-even cost", "Better use of a spot"]], hide_index=True, width="stretch",
+    shown = Y[["Position", "Recruits strong", "Transfers strong", "Break-even cost", "Better use of a spot"]]
+    st.dataframe(shown, hide_index=True, width="stretch",
                  column_config={"Recruits strong": st.column_config.NumberColumn(format="percent"), "Transfers strong": st.column_config.NumberColumn(format="percent"),
                                 "Break-even cost": st.column_config.NumberColumn(format="%.2f")})
+    copy_section(shown)
     st.caption("To the left of the dark dot, a transfer is the better use of a spot; to the right, a recruit. Transfers are counted only if they reached a roster, and they are signed to play right away, "
                "so part of the gap is playing time and not ability.")
 
@@ -352,7 +366,9 @@ with tabs[6]:
 # ---------------------------------------------------------------- status
 with tabs[7]:
     st.subheader("The eight modules")
-    st.dataframe(pd.DataFrame(D["modules"], columns=["Module", "Where it stands", "What it does and does not do"]), hide_index=True, width="stretch")
+    mods = pd.DataFrame(D["modules"], columns=["Module", "Where it stands", "What it does and does not do"])
+    st.dataframe(mods, hide_index=True, width="stretch")
+    copy_section(mods)
     st.subheader("What this data cannot tell us")
     st.markdown("- **Missing data:** snap counts, injuries, depth charts, play-calling, pressure, missed tackles, red-zone results, cost and NIL. Playing time can only be approximated.\n"
                 "- **Offensive line:** only 6% of offensive-line player-seasons have any recorded stat, so their production cannot be measured.\n"
