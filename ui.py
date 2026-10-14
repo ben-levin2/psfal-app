@@ -2,6 +2,7 @@
 instead of repeating layout code."""
 import html
 import re
+from datetime import datetime
 
 import streamlit as st
 
@@ -11,10 +12,13 @@ MISSION = "Competitive Edge Discovery"
 # Interface colors (official Penn State)
 NAVY, PUGH, WHITE = "#001E44", "#96BEE6", "#FFFFFF"
 NAV_IDLE = "#14386B"  # lighter navy for inactive navigation; white text on it is above 9:1 contrast
-# Chart series, in fixed order: Penn State, comparison group, champions/accent. Checked for color-vision separation against a white surface;
-# the light blue is below 3:1 contrast, so charts using it keep direct value labels and a legend.
-PSU, LIGHT, ACCENT = "#1F4E9A", "#6FA8E0", "#A97C2C"
+# Chart series, in fixed order: Penn State, the nearer comparison group, the other comparison group. Penn State is always Nittany Navy;
+# comparisons are Pugh Blue and a restrained slate. Checked with the dataviz palette validator against a white surface: every pair separates
+# under color-vision deficiency (worst pair 26, target 8) and for normal vision. Pugh Blue is below 3:1 contrast on white, so every Pugh Blue
+# mark gets a navy outline or a value label, and every chart keeps a legend or direct labels.
+PSU, LIGHT, ACCENT = NAVY, PUGH, "#5E6B7E"
 NEUTRAL, INK = "#8C96A6", "#12203A"
+AXIS_INK, GRID = "#3D4A63", "#E6ECF3"  # axis text (about 9:1 on white) and recessive gridlines
 GOOD, BAD = "#2A7A58", "#AE4337"
 SHADE = "rgba(150, 190, 230, 0.22)"  # Pugh Blue wash for highlighted chart regions
 
@@ -25,6 +29,13 @@ EVIDENCE = {
     "assumption": (":orange-background[Assumption]", "Assumption", "the answer depends on a number nobody has measured."),
 }
 BADGE = {k: v[0] for k, v in EVIDENCE.items()}
+
+EDGE = "rgba(150, 190, 230, 0.45)"  # Pugh Blue at reduced strength, for card borders
+SOFT = "#C9D6E8"  # light neutral for secondary text on navy
+NAVY_CARD = '[class*="st-key-card_"], [class*="st-key-tile_"], [class*="st-key-panel_"]'
+NAVY_ALERT = ('[data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]), '
+              '[data-testid="stAlertContainer"]:has([data-testid="stAlertContentSuccess"])')
+NAVY_ALL = ":is(" + NAVY_CARD + ", " + NAVY_ALERT + ")"
 
 # Some rules below use Streamlit's own element names (data-testid values and the stMainBlockContainer class) because Streamlit offers no other
 # hook for page padding. They are checked against Streamlit 1.50. If a later version renames them, the rule stops matching and Streamlit's
@@ -64,14 +75,51 @@ _CSS = f"""
   .st-key-psfal_brand [data-testid="stLayoutWrapper"]:has(> .st-key-nav_secondary) {{position: absolute; top: 0.9rem; right: 1.2rem; width: auto;}}
   .psfal-header {{padding-right: 22rem;}}
 }}
-/* Cards and tiles: tighter spacing between their parts */
-[class*="st-key-card_"], [class*="st-key-tile_"] {{gap: 0.45rem;}}
+/* ---- Navy cards: one style for every information card. A container joins it through its key: card_ (Key Findings), tile_ (metric tiles),
+   panel_ (text panels). Streamlit's info and success boxes (highlighted results and the decision tool's verdict) use it too; warnings and
+   errors keep their own colors because they mean "caution". Measured contrast on navy: white 16.5:1, Pugh Blue 8.5:1, SOFT 11:1. */
+{NAVY_CARD} {{background: {NAVY} !important; border: 1px solid {EDGE} !important; border-radius: 10px; gap: 0.45rem;}}
+[class*="st-key-card_"] {{border-top: 3px solid {PUGH} !important;}}  /* the Key Findings lead the page: a slightly stronger top edge */
+{NAVY_ALERT} {{background: {NAVY} !important; border: 1px solid {EDGE}; border-left: 4px solid {PUGH};}}
+{NAVY_ALL} :is(p, li, strong, em, h1, h2, h3, h4) {{color: {WHITE} !important;}}
+{NAVY_ALL} [data-testid="stMetricValue"] {{color: {WHITE} !important; font-weight: 700;}}
+[class*="st-key-tile_"] [data-testid="stMetricValue"] {{font-size: 1.55rem;}}
+[class*="st-key-card_"] [data-testid="stMetricValue"] {{font-size: 1.7rem;}}
+/* secondary text: metric labels in Pugh Blue, notes and captions in a soft light neutral */
+{NAVY_ALL} [data-testid="stMetricLabel"] p {{color: {PUGH} !important; font-weight: 600; letter-spacing: 0.01em;}}
+{NAVY_ALL} [data-testid="stCaptionContainer"], {NAVY_ALL} [data-testid="stCaptionContainer"] p {{color: {SOFT} !important;}}
+/* status words inside cards (:green / :red / :gray text): lighter tints of the same meanings, readable on navy */
+{NAVY_ALL} .stMarkdownColoredText[style*="21, 130, 55"] {{color: #8EDCB2 !important; font-weight: 600;}}
+{NAVY_ALL} .stMarkdownColoredText[style*="189, 64, 67"] {{color: #FFA79D !important; font-weight: 600;}}
+{NAVY_ALL} .stMarkdownColoredText[style*="49, 51, 63"] {{color: {SOFT} !important;}}
+/* evidence labels: light chips with navy text; each kind keeps its own tint (Descriptive grey, Tested blue, Assumption amber) */
+{NAVY_ALL} .stMarkdownColoredBackground {{color: {NAVY} !important; font-weight: 600; padding: 0.1em 0.45em; border-radius: 4px;}}
+{NAVY_ALL} .stMarkdownColoredBackground[style*="49, 51, 63"] {{background-color: #E4E9F0 !important;}}
+{NAVY_ALL} .stMarkdownColoredBackground[style*="28, 131, 225"] {{background-color: {PUGH} !important;}}
+{NAVY_ALL} .stMarkdownColoredBackground[style*="255, 164, 33"] {{background-color: #F6D7A4 !important;}}
+/* links inside cards: Pugh Blue, white and underlined on hover, a visible outline on keyboard focus */
+{NAVY_ALL} button[kind="tertiary"], {NAVY_ALL} button[kind="tertiary"] p, {NAVY_ALL} button[kind="tertiary"] [data-testid="stIconMaterial"] {{color: {PUGH} !important; font-weight: 600;}}
+{NAVY_ALL} button[kind="tertiary"]:hover p, {NAVY_ALL} button[kind="tertiary"]:hover [data-testid="stIconMaterial"] {{color: {WHITE} !important; text-decoration: underline;}}
+{NAVY_ALL} button[kind="tertiary"]:focus-visible {{outline: 3px solid {PUGH}; outline-offset: 2px; border-radius: 3px;}}
+/* cards side by side in a row share one height, so a longer note in one card does not leave the others short */
+[data-testid="stColumn"]:has([class*="st-key-card_"], [class*="st-key-tile_"]) > [data-testid="stVerticalBlock"] {{height: 100%;}}
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(> [class*="st-key-card_"], > [class*="st-key-tile_"]) {{flex: 1 1 auto;}}
+[data-testid="stColumn"] [data-testid="stLayoutWrapper"] > :is([class*="st-key-card_"], [class*="st-key-tile_"]) {{height: 100%;}}
+{NAVY_ALL} a {{color: {PUGH} !important;}}
+{NAVY_ALL} a:hover {{color: {WHITE} !important;}}
 
-[class*="st-key-card_"] {{border-top: 3px solid {PUGH} !important; background: {WHITE};}}
-[class*="st-key-tile_"] {{background: #F3F7FC;}}
-[class*="st-key-tile_"] [data-testid="stMetricValue"] {{color: {NAVY}; font-size: 1.5rem;}}
-[class*="st-key-card_"] [data-testid="stMetricValue"] {{color: {NAVY}; font-size: 1.6rem;}}
+/* Charts sit on white panels with a light edge, so each plot reads as one unit between its heading and its notes */
+[data-testid="stPlotlyChart"] {{background: {WHITE}; border: 1px solid #DCE4EF; border-radius: 10px; padding: 0.6rem 0.75rem 0.3rem; box-shadow: 0 1px 2px rgba(0, 30, 68, 0.05);}}
 .stMainBlockContainer h2, .stMainBlockContainer h3 {{color: {NAVY};}}
+/* Tables drawn by table() below: hide the 0, 1, 2 row numbers Streamlit adds (it ignores a hidden index); keep the text selectable */
+[class*="st-key-tbl"] th.row_heading, [class*="st-key-tbl"] th.blank {{display: none;}}
+[data-testid="stTable"] table {{user-select: text; -webkit-user-select: text;}}
+/* Streamlit wraps each cell's text in a paragraph; shown inline, a copied selection keeps one tab between cells and one line per row,
+   so it pastes into a spreadsheet as rows and columns. */
+[data-testid="stTable"] :is(td, th) [data-testid="stMarkdownContainer"], [data-testid="stTable"] :is(td, th) p {{display: inline;}}
+/* a wide table keeps its first column in view while it scrolls sideways */
+[class*="st-key-tblpin_"] td.col0, [class*="st-key-tblpin_"] th.col_heading.col0 {{position: sticky; left: 0; z-index: 1; background: {WHITE};
+  box-shadow: 1px 0 0 #D6E0EE;}}
 @media (max-width: 640px) {{
   .psfal-header .psfal-name {{font-size: 1.35rem;}}
   [class*="st-key-tile_"] [data-testid="stMetricValue"] {{font-size: 1.25rem;}}
@@ -164,6 +212,26 @@ def split_note(name):
     return (m.group(1), m.group(2)) if m else (str(name), "")
 
 
+def game_date(text, season):
+    """'Oct 10' -> date(season, 10, 10). January to July dates (bowls, playoffs) belong to the next calendar year. None if the text is not a date."""
+    try:
+        d = datetime.strptime(f"{str(text).strip()} {season}", "%b %d %Y").date()
+    except ValueError:
+        return None
+    return d.replace(year=season + 1) if d.month < 8 else d
+
+
+def split_schedule(rows, today, season):
+    """Split the data's remaining-schedule rows ([date, opponent, site]) into games already played and games still to come. The data are
+    hand-updated snapshots, so a game can be over before a new snapshot records its result. A game dated today still counts as to come;
+    a row whose date cannot be read is kept as to come."""
+    played, upcoming = [], []
+    for r in rows:
+        d = game_date(r[0], season)
+        (played if d is not None and d < today else upcoming).append(r)
+    return played, upcoming
+
+
 def module_status(modules, names):
     """The lab's own status lines (from the data's module table) for the named modules, so each family shows how far its research has got."""
     want = {n.lower() for n in names}
@@ -183,7 +251,38 @@ def plot(fig):
     fig.update_layout(dragmode=False)
     fig.update_xaxes(fixedrange=True)
     fig.update_yaxes(fixedrange=True)  # applies to every axis, including both panels of two-panel charts
+    chart_type(fig)
     st.plotly_chart(fig, config=CHART_CONFIG)
+
+
+def chart_type(fig):
+    """Shared chart typography: darker axis text than Plotly's default grey, light gridlines, and hover boxes in white with a navy edge
+    and the app's ink color, large enough to read. Data colors and values are not touched."""
+    fig.update_layout(font=dict(color=INK), legend=dict(font=dict(size=13, color=INK)),
+                      hoverlabel=dict(bgcolor=WHITE, bordercolor=NAVY, font=dict(size=13, color=INK), align="left"))
+    for upd in (fig.update_xaxes, fig.update_yaxes):
+        upd(tickfont=dict(size=12, color=AXIS_INK), title_font=dict(size=13, color=AXIS_INK), gridcolor=GRID, zerolinecolor="#C9D3E0")
+    if fig.layout.hovermode in ("x unified", "y unified"):  # one hover box per row: its dashed guide line would cross the value labels
+        fig.update_xaxes(showspikes=False); fig.update_yaxes(showspikes=False)
+
+
+def table(df, key, formats=None, pin_first=False):
+    """A plain HTML table. Its text can be dragged over, highlighted and copied like the rest of the page; st.dataframe draws its cells on a
+    canvas, so it could not be. Every row is shown. `formats` maps a column to a function that turns a value into its displayed text (the
+    stored values are unchanged); a missing value shows as a dash. With `pin_first`, the first column stays in view when the table scrolls."""
+    fm = {c: _plain for c in df.columns if df[c].dtype.kind == "f"}  # unformatted decimals as the interactive tables showed them, not 0.500000
+    fm.update(formats or {})
+    with st.container(key=f"{'tblpin' if pin_first else 'tbl'}_{key}"):
+        st.table(df.style.format(fm, na_rep="—"))
+
+
+def _plain(v):
+    return f"{v:.4f}".rstrip("0").rstrip(".")
+
+
+def pct(v):
+    """0.4 -> '40%', 0.4567 -> '45.67%': the same as the interactive tables' "percent" format (0 to 2 decimals)."""
+    return f"{v * 100:.2f}".rstrip("0").rstrip(".") + "%"
 
 
 def fmt_spec(fmt):

@@ -2,7 +2,7 @@
 
 They use a synthetic dashboard_data.json fixture (the real one is not in the repo) copied with the app into a temp folder.
 """
-import json, re, shutil, subprocess, sys, tempfile, unittest
+import json, os, re, shutil, subprocess, sys, tempfile, unittest
 from collections import Counter
 from pathlib import Path
 
@@ -13,6 +13,10 @@ from child15.report_reader import ReportError, load_report, parse_report, METRIC
 from streamlit.testing.v1 import AppTest  # noqa: E402
 from streamlit.testing.v1 import element_tree as _et  # noqa: E402
 from streamlit.util import calc_md5  # noqa: E402
+
+# The app tells played games from upcoming ones by today's date. Fix the date before the fixture's season (its one remaining game is Oct 1)
+# so results do not depend on when the tests run; the tests for games already played set their own date.
+os.environ["PSFAL_TODAY"] = "2026-09-01"
 
 
 def make_app(tmp, with_report=True, report_text=None, app_src=None, data=None):
@@ -139,7 +143,8 @@ def table_json(df):
 
 
 def tables(at):
-    """Every table on the page, interactive (st.dataframe) or static (st.table, whose first column may be its index), as DataFrames."""
+    """Every table on the page as a DataFrame: interactive (st.dataframe, which only the pre-redesign app still uses) or static (st.table,
+    whose first column may be its index). The app's own tables are all static now, so their text can be selected and copied."""
     return [x.value for x in at.dataframe] + [x.value.reset_index() if x.value.index.name else x.value for x in at.table]
 
 
@@ -211,7 +216,7 @@ class AppTests(unittest.TestCase):
             self.assertEqual([(m.label, m.value) for m in at.metric][:4], [("2026 record", "3–0"), ("Latest result", "W 30–20"), ("Next game", "Opp"), ("Games left", "1")])
             self.assertIn("<strong>Data through week 6 of 2026</strong> · snapshot TEST FIXTURE · source: bundled snapshot", texts(at))
             self.assertIn("Penn State Football Analytics Lab", texts(at))
-            self.assertFalse(at.dataframe)  # schedule moved to 2026 Games
+            self.assertFalse(tables(at))  # schedule moved to 2026 Games
             # each watch tile keeps its value, status label and named benchmark
             self.assertIn("Metric: **1.0**  \n:green[At or above the benchmark] :gray[· benchmark ref]", [m.value for m in at.markdown])
             self.assertFalse(at.error)
@@ -225,8 +230,98 @@ class AppTests(unittest.TestCase):
             self.assertEqual(tile.value, "USC")
             self.assertIn("Oct 10 · Home · White Out, 7:30 p.m.", [c.value for c in at.caption])
             games = goto(run(path), "2026 Games")
-            sched = [x.value for x in games.dataframe if "Site" in x.value.columns][0]
+            sched = [x for x in tables(games) if "Site" in x.columns][0]
             self.assertEqual(sched.values.tolist(), data["schedule"])  # the schedule table still shows the full original text
+
+    def test_played_game_without_result_is_not_shown_as_upcoming(self):
+        """The real snapshot (October 4) still lists USC (Oct 10) as remaining. After that date the app must not call it the next game or a game
+        left, must say its result is missing, and must not make one up."""
+        from unittest import mock
+        data = fixture(); data["schedule"] = [["Oct 10", "USC (White Out, 7:30 p.m.)", "Home"], ["Oct 17", "Michigan", "Away"], ["Oct 31", "Purdue", "Home"]]
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"PSFAL_TODAY": "2026-10-14"}):
+            path = make_app(d, data=data)
+            at = run(path)
+            self.assertFalse(at.exception)
+            tiles = {m.label: m.value for m in at.metric}
+            self.assertEqual((tiles["Next game"], tiles["Games left"]), ("Michigan", "2"))
+            self.assertEqual(tiles["2026 record"], "3–0")  # the record is still only what the data contain
+            self.assertIn("Latest result in the data", tiles)
+            self.assertNotIn("Latest result", tiles)
+            self.assertIn("Already played, result not in this data yet: USC (Oct 10).", at.warning[0].value)
+            self.assertNotIn("USC", " ".join(str(v) for v in tiles.values()))
+            games = goto(run(path), "2026 Games")
+            dfs = {tuple(x.columns): x for x in tables(games)}
+            self.assertEqual(dfs[("Date", "Opponent", "Site", "Result")].values.tolist(), [["Oct 10", "USC", "Home", "Not in this data snapshot"]])
+            self.assertEqual(dfs[("Date", "Opponent", "Site")].values.tolist(), data["schedule"][1:])
+            self.assertIn("Played, result not in the data yet", [x.value for x in games.subheader])
+            self.assertNotIn("USC", [g["opp"] for g in [*json.loads((Path(d) / "dashboard_data.json").read_text())["games"]]])  # data untouched, no result added
+            self.assertIn("There is a bye on October 24.", texts(games))  # still ahead on Oct 14
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"PSFAL_TODAY": "2026-10-26"}):
+            self.assertNotIn("There is a bye on October 24.", texts(goto(run(make_app(d, data=data)), "2026 Games")))  # not once it has passed
+
+    def test_game_day_counts_as_upcoming_and_finished_schedule(self):
+        from unittest import mock
+        data = fixture(); data["schedule"] = [["Oct 10", "USC (White Out, 7:30 p.m.)", "Home"], ["Oct 17", "Michigan", "Away"]]
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"PSFAL_TODAY": "2026-10-10"}):
+            at = run(make_app(d, data=data))
+            self.assertEqual({m.label: m.value for m in at.metric}["Next game"], "USC")
+            self.assertFalse(at.warning)
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"PSFAL_TODAY": "2026-12-01"}):
+            path = make_app(d, data=data)
+            tiles = {m.label: m.value for m in run(path).metric}
+            self.assertEqual((tiles["Next game"], tiles["Games left"]), ("None left", "0"))
+            self.assertIn("No remaining games on the schedule in the data.", [m.value for m in goto(run(path), "2026 Games").markdown])
+
+    def test_schedule_dates(self):
+        import datetime as dt
+        import ui
+        self.assertEqual(ui.game_date("Oct 10", 2026), dt.date(2026, 10, 10))
+        self.assertEqual(ui.game_date("Jan 1", 2026), dt.date(2027, 1, 1))  # bowl and playoff games fall in the next calendar year
+        self.assertIsNone(ui.game_date("TBA", 2026))
+        rows = [["Oct 10", "USC", "Home"], ["TBA", "Bowl", "Neutral"], ["Oct 17", "Michigan", "Away"]]
+        self.assertEqual(ui.split_schedule(rows, dt.date(2026, 10, 14), 2026), ([rows[0]], rows[1:]))
+
+    def test_every_card_uses_the_navy_card_style(self):
+        """Every bordered box and every metric, on every view, sits in a container keyed card_, tile_ or panel_, the prefixes the shared navy
+        card style applies to; and that style gives them (and info and success boxes) the navy background."""
+        import ui
+        navy = re.compile(r"-(card|tile|panel)_")
+
+        def walk(node, inside):
+            proto = getattr(node, "proto", None)
+            if type(node).__name__ == "Block" and proto is not None and proto.HasField("flex_container") and proto.flex_container.border:
+                self.assertRegex(proto.id, navy, "a bordered box without a navy card key")
+                inside = True
+            if type(node).__name__ == "Block" and proto is not None and navy.search(getattr(proto, "id", "")):
+                inside = True
+            if type(node).__name__ == "Metric":
+                self.assertTrue(inside, f"metric {node.label!r} is not inside a navy card")
+                found.append(node.label)
+            for child in getattr(node, "children", {}).values():
+                walk(child, inside)
+
+        with tempfile.TemporaryDirectory() as d:
+            found = []
+            for name, at in every_view(make_app(d)):
+                walk(at._tree, False)
+            self.assertEqual(len(found), 11)  # fixture: 4 snapshot tiles and 4 findings on Home, 1 watch tile on 2026 Games, 2 Big Ten sample sizes
+        css = ui._CSS
+        self.assertIn(f"{ui.NAVY_CARD} {{background: {ui.NAVY} !important;", css)
+        self.assertIn(f"{ui.NAVY_ALERT} {{background: {ui.NAVY} !important;", css)
+        for prefix in ("card_", "tile_", "panel_"):
+            self.assertIn(f'[class*="st-key-{prefix}"]', ui.NAVY_CARD)
+
+    def test_every_table_is_selectable_text(self):
+        """Interactive tables (st.dataframe) draw their cells on a canvas, so the text cannot be highlighted or copied. None may remain."""
+        with tempfile.TemporaryDirectory() as d:
+            n = 0
+            for name, at in every_view(make_app(d)):
+                self.assertFalse(at.dataframe, name)
+                n += len(at.table)
+            self.assertGreaterEqual(n, 10)
+        src = (ROOT / "streamlit_app.py").read_text() + (ROOT / "child15" / "page.py").read_text()
+        self.assertNotIn("st.dataframe(", src)
+        self.assertNotIn("st.data_editor(", src)
 
     def test_navigation_has_home_five_families_and_two_destinations(self):
         with tempfile.TemporaryDirectory() as d:
@@ -282,7 +377,7 @@ class AppTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
             a = run(make_app(d1, app_src=orig))
             self.assertFalse(a.exception)
-            self.assertEqual(len(a.dataframe), 10); self.assertEqual(len(a.get("plotly_chart")), 11)
+            self.assertEqual(len(tables(a)), 10); self.assertEqual(len(a.get("plotly_chart")), 11)  # (its Child 15 table is drawn by the current child15 code)
             # the old page-top result cards (Week n, opponent, score, Win/Loss): the same results are in the 2026 Games "What stood out" table
             cards = {f"Week {g['wk']}" for g in fixture()["games"]} | {f"**{g['opp']}**" for g in fixture()["games"]} | {f"### {g['pf']}–{g['pa']}" for g in fixture()["games"]} | {":green[**Win**]", ":red[**Loss**]"}
             old_text = {t for t in view_texts(a) if not t.startswith("What public data say about Penn State football")} - removed - cards
@@ -291,7 +386,7 @@ class AppTests(unittest.TestCase):
                 new_dfs |= {table_json(x) for x in tables(b)}
                 new_charts += [chart_values(c) for c in b.get("plotly_chart")]
                 new_text |= view_texts(b)
-            self.assertEqual({table_json(x.value) for x in a.dataframe} - new_dfs, set())
+            self.assertEqual({table_json(x) for x in tables(a)} - new_dfs, set())
             for c in a.get("plotly_chart"):
                 old = chart_values(c)
                 self.assertTrue(old, "an original chart produced no comparable numbers")
@@ -338,7 +433,7 @@ class AppTests(unittest.TestCase):
     def test_schedule_and_results_on_2026_games(self):
         with tempfile.TemporaryDirectory() as d:
             at = goto(run(make_app(d)), "2026 Games")
-            dfs = {tuple(x.value.columns): x.value for x in at.dataframe}
+            dfs = {tuple(x.columns): x for x in tables(at)}
             self.assertEqual(dfs[("Date", "Opponent", "Site")].values.tolist(), fixture()["schedule"])
             self.assertEqual(dfs[("Week", "Opponent", "Result", "What stands out")]["Result"].tolist(), [f"{g['res']} {g['pf']}–{g['pa']}" for g in fixture()["games"]])
             self.assertIn("Three numbers to watch", [s.value for s in at.subheader])
@@ -357,7 +452,7 @@ class AppTests(unittest.TestCase):
             g26 = chart(goto(run(path), "2026 Games"), "Offense")
             off = [tr for tr in g26["data"] if tr["name"] == "Offense"][0]
             self.assertEqual(off["x"], [1, 2, 3, 4]); self.assertEqual(off["y"], [90, 65, None, 6]); self.assertFalse(off["connectgaps"])  # the missing week breaks the line
-            fc = chart(open_view(run(path), "Roster Construction", "Retention & Continuity Forecast"), "Expected back in 2027 (line: the forecast's 80% range)")
+            fc = chart(open_view(run(path), "Roster Construction", "Retention & Continuity Forecast"), "Expected back in 2027 (band: the forecast's 80% range)")
             tr = [t for t in fc["data"] if t["name"].startswith("Expected back")][0]
             for (grp, n, exp, lo, hi), x, up, down in zip(data["forecast"], tr["x"], tr["error_x"]["array"], tr["error_x"]["arrayminus"]):
                 self.assertAlmostEqual(x, exp); self.assertAlmostEqual(x + up, hi); self.assertAlmostEqual(x - down, lo)
@@ -385,7 +480,7 @@ class AppTests(unittest.TestCase):
             self.assertTrue(pd_isna(seasons["Talent rank"].iloc[0])); self.assertEqual(int(seasons["Talent rank"].iloc[1]), 12)  # missing stays missing, not 0 or a guess
             self.assertEqual(len(seasons), 2)  # static table: every season shown, no scroll box
             self.assertIn("— means the rank is missing from the data for that season.", texts(gap))
-            wc = [x for x in open_view(run(path), "Recruiting High Schoolers", "Recruit Development Forecast").dataframe if "Chance" in x.value.columns][0].value
+            wc = [x for x in tables(open_view(run(path), "Recruiting High Schoolers", "Recruit Development Forecast")) if "Chance" in x.columns][0]
             self.assertEqual(wc["Chance"].tolist(), [5, 50, 77])
             self.assertEqual(wc.sort_values("Chance")["Player"].tolist(), ["A", "B", "C"])  # as text, "5%" would sort after "50%" and "77%"
 
@@ -397,7 +492,7 @@ class AppTests(unittest.TestCase):
                 spec = chart(at, "Break-even (95% range)")
                 self.assertEqual(spec["layout"]["yaxis"]["ticktext"], [f"{p} · {verdict}" for p in ["QB", "RB", "WR", "TE", "DL", "LB", "DB"]])
                 self.assertEqual([s["x0"] for s in spec["layout"]["shapes"] if s.get("type") == "rect"], [cost])
-                table = [x.value for x in at.dataframe if "Better use of a spot" in x.value.columns][0]
+                table = [x for x in tables(at) if "Better use of a spot" in x.columns][0]
                 self.assertEqual(set(table["Better use of a spot"]), {verdict})
 
     def test_choices_kept_when_moving_between_sub_sections(self):
@@ -440,7 +535,7 @@ class AppTests(unittest.TestCase):
             for w in ("2014-2025", "2021-2025"):
                 at.radio(key="c15_window").set_value(w).run()
                 at.checkbox(key="c15_fixed").set_value(True).run()
-                df = [x for x in at.dataframe if "Gap in SD (+ = PSU better)" in x.value.columns][0].value
+                df = [x for x in tables(at) if "Gap in SD (+ = PSU better)" in x.columns][0]
                 self.assertEqual(len(df), 32)
                 self.assertEqual(list(df.columns), ["Metric", "Comparison group", "Gap in SD (+ = PSU better)", "Penn State", "Group mean", "Raw gap (PSU minus group)",
                                                     "Direction", "Unit", "Period", "Programs", "Team-seasons"])
@@ -459,7 +554,7 @@ class AppTests(unittest.TestCase):
             got = {tr["name"]: list(tr["x"]) for tr in fig["data"]}
             for name, g in (("Season-specific Big Ten peers", "peers"), ("National average", "national"), ("National champions", "champions")):
                 self.assertEqual(got[name], [p["windows"]["2014-2025"]["groups"][g][m]["gap_sd"] for m in METRICS])
-            labels = {tr["name"]: tr["text"] for tr in fig["data"]}["National champions"]
+            labels = {tr["name"]: tr.get("text") for tr in fig["data"]}["National champions"]
             self.assertEqual(labels, [format(p["windows"]["2014-2025"]["groups"]["champions"][m]["gap_sd"], "+.2f") for m in METRICS])  # signed, two decimals
 
     def test_missing_report_gives_clear_error_no_numbers(self):
