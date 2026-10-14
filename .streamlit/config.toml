@@ -1,0 +1,17 @@
+# Penn State Football Analytics Lab theme: Nittany Navy (#001E44) interface, Pugh Blue (#96BEE6) accents, white surfaces.
+[theme]
+base = "light"
+primaryColor = "#001E44"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F7FC"
+textColor = "#14213D"
+linkColor = "#1F4E9A"
+borderColor = "#D6E0EE"
+dataframeBorderColor = "#E3EAF4"
+dataframeHeaderBackgroundColor = "#EDF3FA"
+showWidgetBorder = true
+baseRadius = "medium"
+blueColor = "#1F4E9A"
+blueBackgroundColor = "#E3EEFA"
+blueTextColor = "#1F4E9A"
+chartCategoricalColors = ["#1F4E9A", "#6FA8E0", "#A97C2C"]
