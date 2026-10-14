@@ -24,6 +24,7 @@ def make_app(tmp, with_report=True, report_text=None, app_src=None, data=None):
     tmp = Path(tmp)
     (tmp / "streamlit_app.py").write_text(app_src if app_src is not None else (ROOT / "streamlit_app.py").read_text())
     shutil.copy(ROOT / "ui.py", tmp / "ui.py")
+    shutil.copy(ROOT / "data_check.py", tmp / "data_check.py")
     (tmp / "dashboard_data.json").write_text(json.dumps(data if data is not None else fixture()))
     shutil.copytree(ROOT / "child15", tmp / "child15", ignore=shutil.ignore_patterns("__pycache__", "*.md"))
     if with_report:
@@ -381,6 +382,10 @@ class AppTests(unittest.TestCase):
             # the old page-top result cards (Week n, opponent, score, Win/Loss): the same results are in the 2026 Games "What stood out" table
             cards = {f"Week {g['wk']}" for g in fixture()["games"]} | {f"**{g['opp']}**" for g in fixture()["games"]} | {f"### {g['pf']}–{g['pa']}" for g in fixture()["games"]} | {":green[**Win**]", ":red[**Loss**]"}
             old_text = {t for t in view_texts(a) if not t.startswith("What public data say about Penn State football")} - removed - cards
+            # the two game counts now come from the data (the fixture has three games and does not state the transfer statistics' coverage);
+            # every other word of those sentences must still match the original
+            counts = {"five games in 2026": "three games in 2026", "Five games, ranked": "The number of games covered is not stated in the data, ranked"}
+            old_text = {next((t.replace(k, v) for k, v in counts.items() if k in t), t) for t in old_text}
             new_dfs, new_charts, new_text = set(), [], set()
             for _, b in every_view(make_app(d2)):
                 new_dfs |= {table_json(x) for x in tables(b)}
