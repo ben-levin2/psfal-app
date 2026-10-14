@@ -17,6 +17,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+import data_check
 import ui
 from ui import ACCENT, BADGE, BAD, INK, LIGHT, NEUTRAL, PSU
 
@@ -54,25 +55,34 @@ def _secret_names():
 
 
 @st.cache_data(ttl=600, show_spinner=False)
-def _fetch(url):
+def _fetch_ok(url):
+    """A successful read is kept for 10 minutes, so an update to the linked file shows within 10 minutes. A failed read raises, and
+    Streamlit does not cache a call that raises, so it is not remembered as data."""
     import urllib.request
-    try:
-        with urllib.request.urlopen(url, timeout=10) as r:
-            return json.loads(r.read().decode())
-    except Exception:
-        return None
+    with urllib.request.urlopen(url, timeout=10) as r:
+        d = json.loads(r.read().decode())
+    if not isinstance(d, dict) or not d:  # e.g. {}: no dashboard data. Raising keeps it out of the 10-minute cache (the same rule as data_check)
+        raise ValueError("not a non-empty JSON object")
+    return d
+
+
+@st.cache_resource
+def _fetch_failures():
+    return {}  # link -> when it last failed; shared by every viewer of this app process (see data_check.fetch_with_retry)
 
 
 def load_data():
     """Order: a link (PSFAL_DATA_URL or secret data_url), then secret data_b64 or data_json, then dashboard_data.json next to this file.
-    Failures are not cached, so fixing the secrets takes effect on the next page load."""
+    A failed link is tried again on a later page load (at most once every data_check.RETRY_WAIT seconds), so a fixed link or secret
+    takes effect without a restart. No link or secret value is ever shown."""
+    import time
     notes = []
     url = os.environ.get("PSFAL_DATA_URL", "") or _secret("data_url")
     if url:
-        d = _fetch(url)
-        if d:
+        d, note = data_check.fetch_with_retry(url, _fetch_ok, _fetch_failures(), time.monotonic())
+        if d is not None:
             return d, "live file", notes
-        notes.append("data_url was set but could not be read")
+        notes.append(note)
     b64 = _secret("data_b64")
     if b64:
         try:
@@ -221,10 +231,10 @@ def _status(*names):
 # ================================================================ Home
 def home():
     games = D["games"]
-    missing, upcoming = ui.split_schedule(D["schedule"], _today(), SEASON)
-    wins = sum(g["res"] == "W" for g in games)
-    losses = sum(g["res"] == "L" for g in games)
-    last = games[-1] if games else None
+    missing, upcoming = _schedule_status()
+    wins = sum(g.get("res") == "W" for g in games)
+    losses = sum(g.get("res") == "L" for g in games)
+    last, unclear = data_check.latest_game(games)
 
     st.subheader("Team snapshot")
     if missing:
@@ -236,6 +246,8 @@ def home():
     with c[1]:
         if last:
             ui.stat_tile("last", "Latest result in the data" if missing else "Latest result", f"{last['res']} {last['pf']}–{last['pa']}", f"Week {last['wk']} · {last['opp']}")
+        elif unclear:
+            ui.stat_tile("last", "Latest result", "Unclear", f"Check the data: {unclear}")
     with c[2]:
         if upcoming:
             opp, note = ui.split_note(upcoming[0][1])
@@ -274,7 +286,16 @@ def home():
             with st.container(border=True, key=f"tile_watch_{i}"):
                 st.markdown(f"{x['label']}: **{value}**  \n" + (":green[At or above the benchmark]" if good else ":red[Below the benchmark]")
                             + f" :gray[· benchmark {x['refLabel']}]")
+                st.caption(data_check.watch_coverage_line(D, x["label"]))  # each card's own stated coverage; never taken from the snapshot date
     ui.open_analysis("Game-by-game analysis, schedule and results", GAMES, key="go_games")
+
+
+def _schedule_status():
+    """(played but missing a result, still to come). A past-dated schedule row whose opponent is already in the results is neither: the
+    data check reports it as listed twice, so it is not also called a missing result."""
+    missing, upcoming = ui.split_schedule(D["schedule"], _today(), SEASON)
+    twice = data_check.played_and_listed(D["schedule"], D["games"], _today(), SEASON)
+    return [r for r in missing if r not in twice], upcoming
 
 
 def _missing_results_note(missing):
@@ -289,8 +310,9 @@ def games_2026():
     games = D["games"]
     st.subheader("Each game against Penn State's own history")
     st.write("Per-play efficiency scored against Penn State's 156 earlier games. 100 is the best Penn State game since 2014 and 0 is the worst.")
-    if games:
-        by_week = {g["wk"]: g for g in games}
+    charted = data_check.results_weeks(games)  # rows without a whole-number week are in the table below but cannot be placed on the chart
+    if charted:
+        by_week = {g["wk"]: g for g in charted}
         weeks = list(range(min(by_week), max(by_week) + 1))  # weeks without a game stay empty, so the lines break instead of bridging them
         fig = go.Figure()
         for name, key, other, col, sym in (("Offense", "o", "d", PSU, "circle"), ("Defense", "d", "o", ACCENT, "square")):
@@ -332,8 +354,9 @@ def games_2026():
                 st.metric(x["label"], f"{x['now']:.1f}{unit}" if unit else f"{x['now']:.1f}")
                 st.caption(f"Benchmark: {x['refLabel']}")
                 st.markdown(":green[At or above the benchmark]" if good else ":red[Below the benchmark]")
+                st.caption(data_check.watch_coverage_line(D, x["label"]))
     st.caption("Improvement across several games would point to a team still coming together. One game proves little.")
-    missing, upcoming = ui.split_schedule(D["schedule"], _today(), SEASON)
+    missing, upcoming = _schedule_status()
     if missing:
         st.subheader("Played, result not in the data yet")
         _missing_results_note(missing)
@@ -435,7 +458,12 @@ def _transfer_translation():
 def _transfer_analytics():
     st.markdown("**Penn State's 2026 transfers: highest production so far**")
     ui.table(pd.DataFrame(D["transfers"], columns=["Player", "Pos", "From", "So far"]), "transfers")
-    st.caption("Five games, ranked within Penn State's own position groups. Eight of the ten are Iowa State transfers; that does not show they are better than other transfers.")
+    cov = data_check.coverage(D).get("transfers")
+    # how many games the statistics cover: from meta.coverage.transfers when the data state it; otherwise the count is not claimed
+    games_part = (data_check.count_words(data_check.games_through(D, cov)).capitalize() if cov is not None
+                  else "The number of games covered is not stated in the data")
+    st.caption(f"{games_part}, ranked within Penn State's own position groups. Eight of the ten are Iowa State transfers; that does not show they are better than other transfers.")
+    st.caption(data_check.coverage_note(D, "transfers"))
     st.caption("The transfer module's team-level study (how teams change from one year to the next after taking many portal arrivals) is not included in this dashboard's data.")
 
 
@@ -734,7 +762,7 @@ def _limits_methods():
     st.subheader("What this data cannot tell us")
     st.markdown("- **Missing data:** snap counts, injuries, depth charts, play-calling, pressure, missed tackles, red-zone results, cost and NIL. Playing time can only be approximated.\n"
                 "- **Offensive line:** only 6% of offensive-line player-seasons have any recorded stat, so their production cannot be measured.\n"
-                "- **Small samples:** about 12 champions, five games in 2026, and position groups of a few dozen players.\n"
+                f"- **Small samples:** about 12 champions, {data_check.count_words(len(D['games']))} in 2026, and position groups of a few dozen players.\n"
                 "- **Association, not cause:** a gap in talent or offense does not show that closing it would produce a title.\n"
                 "- **Circular measures:** SP+, per-play efficiency and record are built from the results used to judge Penn State.\n"
                 "- **Volume stats:** production mixes ability with opportunity and scheme.")
@@ -765,4 +793,11 @@ ui.brand_header("What public data say about Penn State football from 2014 to 202
                 f"source: {ui.esc(_SOURCE_LABEL.get(SOURCE, SOURCE))}", HOME, [REC, TRN, DEV, ROS, CER], [GAMES, RESEARCH], current)
 if NOTES:
     st.warning("Data note: " + "; ".join(NOTES) + f". Showing the {_SOURCE_LABEL.get(SOURCE, SOURCE)} instead.")
+try:
+    CHECKS = data_check.check_data(D, _today(), SEASON)
+except Exception as ex:  # a malformed file must not stop the dashboard from showing what it can
+    CHECKS = [f"The data check could not finish ({type(ex).__name__}); the file may be malformed."]
+if CHECKS:
+    st.warning("**Data check:** the numbers below are shown as they are in the data file, but some parts look out of step. "
+               "Fix these in the data file:\n" + "\n".join(f"- {m}" for m in CHECKS), icon=":material/fact_check:")
 current.run()
