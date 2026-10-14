@@ -103,6 +103,33 @@ def load_data():
 
 
 D, SOURCE, NOTES = load_data()
+
+# Drop only stale schedule annotations that explicitly record a result already present in games.
+# This keeps a hand-maintained/secret snapshot from showing an already-played game as still scheduled.
+def _remove_result_annotated_schedule_rows(data):
+    if not isinstance(data, dict) or not isinstance(data.get("schedule"), list) or not isinstance(data.get("games"), list):
+        return
+    results = set()
+    for game in data["games"]:
+        if not isinstance(game, dict):
+            continue
+        opponent = re.sub(r"\(.*?\)", "", str(game.get("opp", ""))).split(",", 1)[0].strip().lower()
+        results.add((opponent, str(game.get("res", "")).upper(), game.get("pf"), game.get("pa")))
+    cleaned = []
+    for row in data["schedule"]:
+        if isinstance(row, (list, tuple)) and len(row) > 1:
+            opponent = str(row[1])
+            note = re.search(r",\s*played:\s*([WL])\s+(\d+)[–-](\d+)", opponent, re.IGNORECASE)
+            if note:
+                base = re.sub(r"\(.*?\)", "", opponent).split(",", 1)[0].strip().lower()
+                result = (base, note.group(1).upper(), int(note.group(2)), int(note.group(3)))
+                if result in results:
+                    continue
+        cleaned.append(row)
+    data["schedule"] = cleaned
+
+
+_remove_result_annotated_schedule_rows(D)
 ui.inject_css()
 
 
