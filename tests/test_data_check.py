@@ -101,6 +101,34 @@ class CheckRules(unittest.TestCase):
         self.assertIn('meta.coverage should map sections to weeks, for example {"watch": 6, "transfers": 6}.', data_check.check_data(d, SEP1, 2026))
 
 
+class TeamNames(unittest.TestCase):
+    """How schedule and result opponents are normalized before they are matched (data_check._team)."""
+
+    def test_note_after_a_comma_or_semicolon_is_ignored(self):
+        self.assertEqual(data_check._team("USC (White Out, 7:30 p.m.), played: L 23–31"), "usc")  # the live schedule row
+        self.assertEqual(data_check._team("Purdue; Homecoming"), "purdue")
+        self.assertEqual(data_check._team("at Michigan, noon kickoff"), "michigan")
+
+    def test_plain_names_still_match(self):
+        self.assertEqual(data_check._team("USC"), "usc")
+        self.assertEqual(data_check._team("USC"), data_check._team("USC (White Out, 7:30 p.m.), played: L 23–31"))
+
+    def test_existing_normalization_is_unchanged(self):
+        cases = {"USC (White Out, 7:30 p.m.)": "usc",   # parentheses removed, including a comma inside them
+                 "at Northwestern": "northwestern", "vs. Ohio State": "ohio state", "vs Iowa": "iowa", "versus Maryland": "maryland",
+                 "  Penn State  ": "penn state", "MICHIGAN STATE": "michigan state", "Miami (FL)": "miami", "Texas A&M": "texas a&m",
+                 "Atlanta Tech": "atlanta tech", "": ""}  # 'at' is only dropped as a separate word
+        for raw, want in cases.items():
+            self.assertEqual(data_check._team(raw), want, raw)
+
+    def test_matching_uses_the_note_free_name(self):
+        games = [game(6, "USC", "L")]
+        row = ["Oct 10", "USC (White Out, 7:30 p.m.), played: L 23–31", "Home"]
+        self.assertEqual(data_check.played_and_listed([row], games, OCT14, 2026), [row])
+        later = ["Dec 5", "USC, Big Ten Championship", "Neutral"]  # a future row against a team already played is still left alone
+        self.assertEqual(data_check.played_and_listed([later], games, OCT14, 2026), [])
+
+
 class LatestAndCounts(unittest.TestCase):
     def test_latest_game_by_week_not_row_order(self):
         g, why = data_check.latest_game([game(3, "C"), game(1, "A"), game(2, "B")])
@@ -237,6 +265,20 @@ class AppBehaviour(unittest.TestCase):
             self.assertEqual({m.label: m.value for m in at.metric}["Next game"], "Michigan")
             games = goto(run(path), "2026 Games")
             self.assertNotIn("Played, result not in the data yet", [s.value for s in games.subheader])
+
+    def test_annotated_schedule_row_is_not_called_missing(self):
+        """Regression: the live schedule row carried a note after the name ('USC (White Out, 7:30 p.m.), played: L 23–31'), so it did not
+        match 'USC' in the results and was wrongly reported as played without a result. It is now reported as listed twice."""
+        row = ["Oct 10", "USC (White Out, 7:30 p.m.), played: L 23–31", "Home"]
+        d1 = data(games=[game(1), game(6, "USC", "L")], schedule=[row, ["Oct 17", "Michigan", "Away"]])
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"PSFAL_TODAY": "2026-10-14"}):
+            path = make_app(d, data=d1)
+            at = run(path)
+            self.assertNotIn("Already played, result not in this data yet", texts(at))
+            self.assertIn("USC (White Out, 7:30 p.m.), played: L 23–31 (Oct 10) is in both the results and the remaining schedule.", texts(at))
+            tiles = {m.label: m.value for m in at.metric}
+            self.assertEqual((tiles["Latest result"], tiles["Next game"], tiles["Games left"]), ("L 30–20", "Michigan", "1"))
+            self.assertNotIn("Played, result not in the data yet", [s.value for s in goto(run(path), "2026 Games").subheader])
 
     def test_check_is_shown_on_every_page_and_hides_nothing(self):
         d1 = data(games=[game(1), game(2), game(9)]); d1["meta"]["through_week"] = 6; del d1["modules"]

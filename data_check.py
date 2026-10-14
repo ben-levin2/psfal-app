@@ -60,8 +60,10 @@ def results_weeks(games):
 
 
 def _team(name):
-    """'at Northwestern' / 'USC (White Out, 7:30 p.m.)' -> 'northwestern' / 'usc', for matching the results to the schedule."""
-    n = re.sub(r"\(.*?\)", "", str(name)).strip().lower()
+    """'at Northwestern' / 'USC (White Out, 7:30 p.m.)' -> 'northwestern' / 'usc', for matching the results to the schedule. Text after the
+    first comma or semicolon outside parentheses is a note, not part of the name ('USC (...), played: L 23–31' -> 'usc')."""
+    n = re.sub(r"\(.*?\)", "", str(name))
+    n = re.split(r"[,;]", n, maxsplit=1)[0].strip().lower()
     return re.sub(r"^(at|vs\.?|versus)\s+", "", n).strip()
 
 
