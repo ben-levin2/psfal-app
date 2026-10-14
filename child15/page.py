@@ -2,7 +2,8 @@
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from table_copy import copy_section
+
+from ui import plot
 
 from .report_reader import GROUPS, METRICS, ReportError, load_report
 
@@ -66,13 +67,16 @@ def render(blue, gray, gold, style, grouped_hbar):
     # ---- chart
     st.markdown(f"**Penn State's gap in standard deviations, {win.replace('-', ' to ')}**")
     series = [(GROUP_LABEL[g], [G[g][m]["gap_sd"] for m in METRICS]) for g in ("peers", "national", "champions")]
-    labels = [f"{m}" for m in METRICS]
+    # † marks the measures the warning above calls partly circular for the champion row (SP+ and win percentage)
+    labels = [f"{m} †" if m.startswith("SP+") or m == "Win percentage" else m for m in METRICS]
     fig = grouped_hbar(labels, series, [blue, gray, gold], xrange=[-1.8, 2.1], fmt="%{x:+.2f}", height=640)
     fig.add_vline(x=0, line_color="#55627D")
     fig.update_xaxes(title="Standard deviations (positive = Penn State better; negative = Penn State behind)")
-    st.plotly_chart(fig, width="stretch")
+    plot(fig)
     st.caption("Each team-season is standardized against all teams in the same season. Penn State is excluded from every comparison average. "
                "Bars to the right of zero mean Penn State is ahead of that group; to the left, behind.")
+    st.caption("† Named in the warning above as partly circular for the champion comparison. The lab's general limitations also list per-play "
+               "efficiency (PPA here) as a circular measure.")
 
     # ---- table
     st.markdown("**Full numbers**")
@@ -88,11 +92,15 @@ def render(blue, gray, gold, style, grouped_hbar):
     show_fixed = st.checkbox("Include the fixed 18-team Big Ten set (sensitivity check)", value=False, key="c15_fixed")
     if not show_fixed:
         df = df[df["Comparison group"] != GROUP_LABEL["fixed18"]]
-    st.dataframe(df, hide_index=True, width="stretch",
-                 column_config={"Gap in SD (+ = PSU better)": st.column_config.NumberColumn(format="%.2f"),
-                                "Penn State": st.column_config.NumberColumn(format="%.3f"), "Group mean": st.column_config.NumberColumn(format="%.3f"),
-                                "Raw gap (PSU minus group)": st.column_config.NumberColumn(format="%.3f")})
-    copy_section(df)
+    st.caption("Metric stays in view; scroll the table sideways to see every column, including the sample sizes (Programs, Team-seasons).")
+    st.dataframe(df, hide_index=True, width="stretch", height=38 + 35 * len(df),  # every row shown, no scroll box inside the page
+                 column_config={"Metric": st.column_config.TextColumn(pinned=True, width=150), "Comparison group": st.column_config.TextColumn(width=205),
+                                "Gap in SD (+ = PSU better)": st.column_config.NumberColumn(format="%+.2f", width=110),
+                                "Penn State": st.column_config.NumberColumn(format="%.3f", width=85), "Group mean": st.column_config.NumberColumn(format="%.3f", width=95),
+                                "Raw gap (PSU minus group)": st.column_config.NumberColumn(format="%+.3f", width=115),
+                                "Direction": st.column_config.TextColumn(width=205), "Unit": st.column_config.TextColumn(width=215),
+                                "Period": st.column_config.TextColumn(width=80), "Programs": st.column_config.NumberColumn(width=75),
+                                "Team-seasons": st.column_config.NumberColumn(width=95)})
     st.caption("Raw gaps are in the metric's own unit and keep its direction, so a negative raw gap on a defense measure is good for Penn State. The standardized gap is already flipped. "
                "Recruiting points and talent have fewer team-seasons because they are missing for 2014 and for a few teams; zero talent values are treated as missing.")
 
