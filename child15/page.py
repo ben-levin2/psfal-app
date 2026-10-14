@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from ui import plot
+
 from .report_reader import GROUPS, METRICS, ReportError, load_report
 
 GROUP_LABEL = {"peers": "Season-specific Big Ten peers", "national": "National average", "champions": "National champions",
@@ -70,7 +72,7 @@ def render(blue, gray, gold, style, grouped_hbar):
     fig = grouped_hbar(labels, series, [blue, gray, gold], xrange=[-1.8, 2.1], fmt="%{x:+.2f}", height=640)
     fig.add_vline(x=0, line_color="#55627D")
     fig.update_xaxes(title="Standard deviations (positive = Penn State better; negative = Penn State behind)")
-    st.plotly_chart(fig)
+    plot(fig)
     st.caption("Each team-season is standardized against all teams in the same season. Penn State is excluded from every comparison average. "
                "Bars to the right of zero mean Penn State is ahead of that group; to the left, behind.")
     st.caption("† Named in the warning above as partly circular for the champion comparison. The lab's general limitations also list per-play "

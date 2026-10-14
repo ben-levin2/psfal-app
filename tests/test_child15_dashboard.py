@@ -212,6 +212,8 @@ class AppTests(unittest.TestCase):
             self.assertIn("<strong>Data through week 6 of 2026</strong> · snapshot TEST FIXTURE · source: bundled snapshot", texts(at))
             self.assertIn("Penn State Football Analytics Lab", texts(at))
             self.assertFalse(at.dataframe)  # schedule moved to 2026 Games
+            # each watch tile keeps its value, status label and named benchmark
+            self.assertIn("Metric: **1.0**  \n:green[At or above the benchmark] :gray[· benchmark ref]", [m.value for m in at.markdown])
             self.assertFalse(at.error)
 
     def test_next_game_tile_separates_notes_without_changing_data(self):
@@ -244,6 +246,24 @@ class AppTests(unittest.TestCase):
                 self.assertNotIn("deprecated", texts(at), name)  # the Plotly keyword warning no longer appears on the page
                 n += 1
             self.assertEqual(n, 18)
+
+    def test_every_chart_holds_still_but_keeps_hover(self):
+        """No drag-to-zoom, pan, box/lasso selection, scroll zoom, double-click rescale or toolbar on any chart; hover stays on."""
+        with tempfile.TemporaryDirectory() as d:
+            n = 0
+            for name, at in every_view(make_app(d)):
+                for c in at.get("plotly_chart"):
+                    spec, config = json.loads(c.proto.spec), json.loads(c.proto.config)
+                    lay = spec["layout"]
+                    self.assertIs(lay.get("dragmode"), False, name)
+                    axes = [k for k in lay if re.fullmatch(r"[xy]axis\d*", k)]
+                    self.assertTrue(axes, name)
+                    self.assertTrue(all(lay[k].get("fixedrange") is True for k in axes), (name, [k for k in axes if lay[k].get("fixedrange") is not True]))
+                    self.assertEqual({k: config.get(k) for k in ("displayModeBar", "scrollZoom", "doubleClick")}, {"displayModeBar": False, "scrollZoom": False, "doubleClick": False}, name)
+                    self.assertNotIn("staticPlot", config)  # a static plot would also remove hover
+                    self.assertNotEqual(lay.get("hovermode"), False, name)
+                    n += 1
+            self.assertEqual(n, 12)
 
     def test_no_copy_table_sections_anywhere(self):
         with tempfile.TemporaryDirectory() as d:
@@ -284,13 +304,27 @@ class AppTests(unittest.TestCase):
             research = view_texts(open_view(run(path), "Research & Methods", "All findings"))
             at = run(path)
             md = [m.value for m in at.markdown]
-            for text, badge in (("Penn State beats nearly everyone below the elite tier.", ":gray-background[Descriptive]"), ("The biggest gap to national champions", ":gray-background[Descriptive]"),
-                                ("Across 15 programs, no repeatable type", ":blue-background[Tested]"), ("A transfer is the better use of a roster spot", ":orange-background[Assumption]")):
-                card = [m for m in md if m.startswith(text)]
-                self.assertEqual(len(card), 1, text); self.assertIn(card[0], research)  # word for word from the full list
-                self.assertTrue(any(m.startswith(badge) for m in md), badge)
+            # headline with its evidence label, then the key statistic, exactly as before
+            self.assertEqual([m for m in md if m.startswith(":") and "**" in m][:4], [
+                ":gray-background[Descriptive]  **How does Penn State do against elite teams?**", ":gray-background[Descriptive]  **Where is the gap to champions largest?**",
+                ":blue-background[Tested]  **Do some recruits beat their ratings in a repeatable way?**", ":orange-background[Assumption]  **Recruit or transfer for an open roster spot?**"])
+            self.assertEqual([(m.label, m.value) for m in at.metric][4:8], [("Against the SP+ top 10", "5–22"), ("Behind champions in passing, 2021 to 2025", "1.57 SD"),
+                                                                            ("Repeatable undervalued recruit types, 15 programs", "None found"),
+                                                                            ("Break-even cost of a transfer spot vs a recruit's", "About 1.5×")])
+            # shorter supporting lines on Home; the full findings are unchanged, word for word, in Research & Methods
+            for short in ("Penn State beats nearly everyone below the elite tier: 66–9 against teams outside the SP+ top 50.",
+                          "Offense is the biggest gap, passing most of all. Defense is close to playoff level.",
+                          "Recruiting ratings explain only about a quarter of production.",
+                          "A transfer is the better use of a spot only below that cost. Nobody has the real cost."):
+                self.assertIn(short, md)
+            for full in ("Penn State beats nearly everyone below the elite tier. It is 66–9 against teams outside the top 50 by SP+ and 5–22 against the top 10.",
+                         "The biggest gap to national champions is offense, and passing most of all. Defense is close to playoff level.",
+                         "Across 15 programs, no repeatable type of undervalued recruit showed up. Recruiting ratings explain only about a quarter of production.",
+                         "A transfer is the better use of a roster spot only if he costs less than about 1.5 times a recruit's spot. Nobody has the real cost."):
+                self.assertIn(full, research)
+            self.assertIn("Tested: the question was written down before running it", " ".join(research))  # the evidence-label legend now lives here
             self.assertEqual([b.label for b in at.button][:5], ["Open the championship gap analysis", "Open the championship gap analysis", "Open recruiting and portal results",
-                                                                "Open the decision tool", "All eight findings, with how each was tested"])
+                                                                "Open the decision tool", "All eight findings and what the evidence labels mean"])
             for fi, page, sub, heading in ((0, "Competitive Edge Research", "Championship Gap", "How Penn State loses"), (1, "Competitive Edge Research", "Championship Gap", "How Penn State loses"),
                                            (4, "Recruiting High Schoolers", "Market Inefficiency Model", "Do some programs get more from their recruits than ratings predict?  :blue-background[Tested]"),
                                            (7, "Roster Construction", "Decision Tool", "Recruit or transfer?  :orange-background[Assumption]")):

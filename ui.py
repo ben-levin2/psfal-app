@@ -32,7 +32,7 @@ BADGE = {k: v[0] for k, v in EVIDENCE.items()}
 _CSS = f"""
 <style>
 /* Top spacing: Streamlit's top bar is 60px; its default 8rem (128px) padding left about 70px of empty space above the header. */
-.stMainBlockContainer {{padding-top: 4.75rem;}}
+.stMainBlockContainer {{padding-top: 4.75rem; padding-bottom: 3rem;}}  /* Streamlit's default 10rem bottom padding is empty space */
 @media (min-width: 1100px) {{ .stMainBlockContainer {{padding-left: 3rem; padding-right: 3rem;}} }}
 /* This style block is the first element on every page and takes no space itself; drop its 16px row gap. Matches only that element. */
 [data-testid="stElementContainer"]:has(style#psfal-css) {{display: none;}}
@@ -170,6 +170,20 @@ def module_status(modules, names):
     for row in modules:
         if str(row[0]).lower() in want:
             st.caption(f"**Module status, {row[0]}:** {row[1]}. {row[2]}")
+
+
+# Charts are for reading, not exploring: Plotly's default drag mode (zoom) let any click-drag zoom into a box and a double-click rescale the axes,
+# and its toolbar offered pan, box and lasso tools. These settings turn all of that off and keep hover tooltips.
+CHART_CONFIG = {"displayModeBar": False, "scrollZoom": False, "doubleClick": False, "showAxisDragHandles": False, "showAxisRangeEntryBoxes": False}
+
+
+def plot(fig):
+    """Draw a Plotly chart that holds still under the mouse: no drag-to-zoom, pan, box or lasso selection, scroll zoom or double-click
+    rescaling. Hover tooltips still work. Every chart in the app goes through here."""
+    fig.update_layout(dragmode=False)
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)  # applies to every axis, including both panels of two-panel charts
+    st.plotly_chart(fig, config=CHART_CONFIG)
 
 
 def fmt_spec(fmt):

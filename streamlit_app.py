@@ -149,6 +149,16 @@ FINDINGS = [
 ]
 
 
+# Home cards: a shorter supporting line under each card's statistic. Each drops only what the statistic above it already says; the full
+# wording is unchanged in FINDINGS and shown in Research & Methods.
+CARD_TEXT = {
+    0: "Penn State beats nearly everyone below the elite tier: 66–9 against teams outside the SP+ top 50.",
+    1: "Offense is the biggest gap, passing most of all. Defense is close to playoff level.",
+    4: "Recruiting ratings explain only about a quarter of production.",
+    7: "A transfer is the better use of a spot only below that cost. Nobody has the real cost.",
+}
+
+
 # ---------------------------------------------------------------- decision-tool state (kept when the reader moves between pages)
 def _set_weights():
     for p in POS:
@@ -204,7 +214,6 @@ def home():
         ui.stat_tile("left", "Games left", len(sched_rows), "On the remaining schedule")
 
     st.subheader("Key Findings")
-    ui.evidence_legend()
     # (question, key statistic, what the statistic is, index into FINDINGS, sub-section to open, link text, page, sub-section key)
     cards = [
         ("How does Penn State do against elite teams?", "5–22", "Against the SP+ top 10", 0, "Championship Gap", "Open the championship gap analysis", CER, "sub_cer"),
@@ -219,9 +228,9 @@ def home():
                 with st.container(border=True, key=f"card_finding_{fi}"):
                     st.markdown(f"{BADGE[FINDINGS[fi][1]]}  **{q}**")
                     st.metric(stat_label, stat)
-                    st.write(FINDINGS[fi][0])
+                    st.write(CARD_TEXT[fi])
                     ui.open_analysis(link, page, sub_key, sub, key=f"go_finding_{fi}")
-    ui.open_analysis("All eight findings, with how each was tested", RESEARCH, "sub_rm", "All findings", key="go_all_findings")
+    ui.open_analysis("All eight findings and what the evidence labels mean", RESEARCH, "sub_rm", "All findings", key="go_all_findings")
 
     st.subheader("This season: numbers to watch")
     w = st.columns(max(len(D["watch"]), 1))
@@ -232,7 +241,7 @@ def home():
         with c:
             with st.container(border=True, key=f"tile_watch_{i}"):
                 st.markdown(f"{x['label']}: **{value}**  \n" + (":green[At or above the benchmark]" if good else ":red[Below the benchmark]")
-                            + f"  \n:gray[Benchmark: {x['refLabel']}]")
+                            + f" :gray[· benchmark {x['refLabel']}]")
     ui.open_analysis("Game-by-game analysis, schedule and results", GAMES, key="go_games")
 
 
@@ -249,13 +258,13 @@ def games_2026():
             ys = [by_week[w][key] if w in by_week else None for w in weeks]
             # in each week the higher of the two values is labelled above its point and the lower one below, so labels never sit on the other marker
             pos = ["top center" if w in by_week and (by_week[w][key] > by_week[w][other] or (by_week[w][key] == by_week[w][other] and key == "o")) else "bottom center" for w in weeks]
-            cd = [[by_week[w]["opp"], f"{by_week[w]['res']} {by_week[w]['pf']}–{by_week[w]['pa']}"] if w in by_week else ["", ""] for w in weeks]
+            cd = [[w, by_week[w]["opp"], f"{by_week[w]['res']} {by_week[w]['pf']}–{by_week[w]['pa']}"] if w in by_week else [w, "", ""] for w in weeks]
             fig.add_scatter(x=weeks, y=ys, name=name, mode="lines+markers+text", text=[("" if v is None else f"{v:.0f}") for v in ys],
                             textposition=pos, line=dict(color=col, width=2), marker=dict(color=col, size=9, symbol=sym), connectgaps=False,
-                            customdata=cd, hovertemplate=f"Week %{{x}}: %{{customdata[0]}} (%{{customdata[1]}})<br>{name}: %{{y:.0f}} of 100<extra></extra>")
+                            customdata=cd, hovertemplate=f"Week %{{customdata[0]}}: %{{customdata[1]}} (%{{customdata[2]}})<br>{name}: %{{y:.0f}} of 100<extra></extra>")
         fig.update_xaxes(tickvals=weeks, ticktext=[f"Wk {w}<br>{by_week[w]['opp']}" if w in by_week else f"Wk {w}" for w in weeks], title=None)
         fig.update_yaxes(range=[-8, 108], title="Score against Penn State's earlier games (0 to 100)")  # room for labels below 0 and above 100
-        st.plotly_chart(style(fig, 380))
+        ui.plot(style(fig, 380))
         st.caption("Opponents differ in strength and the season is a handful of games, so a line moving up or down is not by itself proof that the team "
                    "is improving or slipping.")
     st.subheader("What stood out")
@@ -313,7 +322,7 @@ def _market():
     fig.add_scatter(x=P["Earlier"], y=P["Program"], mode="markers", name="Earlier classes", marker=dict(symbol="circle-open", size=9, color=colr, line=dict(width=2)),
                     customdata=ui.labels(P["Earlier"], "%{x:+.1f}"), hovertemplate="%{y}, earlier classes: %{customdata} percentile points<extra></extra>")
     fig.add_vline(x=0, line_color="#55627D"); fig.update_layout(yaxis=dict(autorange="reversed")); fig.update_xaxes(title="Gap in percentile points")
-    st.plotly_chart(style(fig, 560))
+    ui.plot(style(fig, 560))
     st.write("Programs' earlier and later gaps correlate weakly (**0.38** across 15 programs), so differences are suggestive and not conclusive. Penn State ranks 2nd of 15 in the later classes at +1.9, "
              "but its range (−1.9 to +5.6) includes zero. Size for position passed the test with a tiny effect (a correlation of 0.08), and in-state recruits showed nothing.")
 
@@ -333,7 +342,7 @@ def _transfer_translation():
                            text=ui.labels([r[2] for r in G], "%{x:+.1f}"), texttemplate="%{text}", textposition="outside", cliponaxis=False,
                            customdata=[r[1] for r in G], hovertemplate="%{y}<br>Gap %{text} percentile points (group size %{customdata})<extra></extra>"))
     fig.update_layout(yaxis=dict(autorange="reversed")); fig.update_xaxes(range=[-18, 6], title="Gap in percentile points")
-    st.plotly_chart(style(fig, 260, legend=False))
+    ui.plot(style(fig, 260, legend=False))
     st.markdown("- **The portal rating carries information.** Rank correlation with production at the new school was 0.31, then 0.37 in the later classes (range 0.27 to 0.47).\n"
                 "- **Step-up transfers produce less, mostly because of one group.** Transfers from outside the top 65 or from non-FBS schools produced 3.1 points less, then 8.6 less (range 2.8 to 14.4). Nearly all of it is the last row above.\n"
                 "- **Within FBS the gap is small.** Lower-ranked FBS origins were 3.9 points lower than top-65 ones, which cannot be told apart from zero (range −9.9 to +2.3). After allowing for the rating, the overall gap is about 5 points. Those two checks were exploratory.")
@@ -363,7 +372,7 @@ def _development_analytics():
         fig.add_scatter(x=T["years"], y=T[key], mode="lines+markers", name=name, line=dict(color=col, width=3), marker=dict(symbol=sym, size=8),
                         hovertemplate=f"{name}, year %{{x}}: percentile %{{y:.0f}}<extra></extra>")
     fig.update_xaxes(title="Year in the program", dtick=1); fig.update_yaxes(range=[0, 100], title="Production percentile")
-    st.plotly_chart(style(fig, 360))
+    ui.plot(style(fig, 360))
     st.markdown("**Production carries over, improvement does not**  " + BADGE["descriptive"])
     st.write("A player's production percentile correlates **0.71** with his next-year percentile. His year-to-year change correlates **−0.27** with the change the year before "
              "(partly because percentiles stop at 0 and 100). A score built on improvement is not supported. Some players do keep beating their recruiting profile (0.54).")
@@ -379,7 +388,7 @@ def _breakout_forecast():
     fig.add_scatter(x=C["pred"], y=C["act"], mode="lines+markers", name="Five groups, least to most likely", line=dict(color=PSU, width=3),
                     hovertemplate="Predicted %{x:.0%}, actually strong %{y:.0%}<extra></extra>")
     fig.update_xaxes(range=[0, 1], title="Predicted chance of becoming a strong producer", tickformat=".0%"); fig.update_yaxes(range=[0, 1], title="Actual", tickformat=".0%")
-    st.plotly_chart(style(fig, 360))
+    ui.plot(style(fig, 360))
     st.caption("The order held, but the middle overstated the chance (players predicted at 58% were strong 36% of the time), because more players left in the later classes. Use it as a ranking, not as odds.")
     ui.open_analysis("Related: Penn State's 2025 class, most likely strong producers by 2027", REC, "sub_rec", "Recruit Development Forecast", key="go_class_forecast")
 
@@ -403,7 +412,7 @@ def _roster_analytics():
     fig.add_scatter(y=[r[0] for r in R], x=[r[3] for r in R], mode="markers", name="Previous lowest", marker=dict(symbol="line-ns", size=16, line=dict(width=3, color=ACCENT)),
                     hovertemplate="%{y}: previous lowest %{x}% back<extra></extra>")
     fig.update_layout(yaxis=dict(autorange="reversed")); fig.update_xaxes(range=[0, 100], title="Percent back")
-    st.plotly_chart(style(fig, 520))
+    ui.plot(style(fig, 520))
     st.caption("Passing yards returning is 0% (previous low 8%). Last year's top two sack leaders, Dani Dennis-Sutton and Zane Durant, are gone, along with quarterbacks Drew Allar and Ethan Grunkemeyer and running backs Kaytron Allen and Nicholas Singleton.")
 
 
@@ -422,7 +431,7 @@ def _retention_forecast():
                     customdata=F[["Low (80%)", "High (80%)"]].values,
                     hovertemplate="%{y}: %{x:.1f} expected back (80% range %{customdata[0]:.1f} to %{customdata[1]:.1f})<extra></extra>")
     fig.update_layout(yaxis=dict(autorange="reversed")); fig.update_xaxes(title="Players", rangemode="tozero")
-    st.plotly_chart(style(fig, max(260, 34 * len(F) + 110)))
+    ui.plot(style(fig, max(260, 34 * len(F) + 110)))
     st.caption("Open circle: players in 2026. Dot: the forecast's expected returners; line: its 80% range. The difference is a rough guide to where spots may open. "
                "In the backtest above, these position-group forecasts did no better than a flat guess.")
     st.dataframe(F, hide_index=True, width="stretch",
@@ -459,7 +468,7 @@ def _decision():
     fig.add_vline(x=cost, line_color=PSU, line_width=3)
     fig.update_layout(yaxis=dict(autorange="reversed", tickmode="array", tickvals=Y["Position"], ticktext=[f"{p} · {v}" for p, v in zip(Y["Position"], Y["Better use of a spot"])]))
     fig.update_xaxes(range=[0.8, 4.2], title="Cost of a transfer spot relative to a recruit spot")
-    st.plotly_chart(style(fig, 330, legend=False).update_layout(margin=dict(t=34)))  # room for the labels above the plot
+    ui.plot(style(fig, 330, legend=False).update_layout(margin=dict(t=34)))  # room for the labels above the plot
     st.dataframe(Y[["Position", "Recruits strong", "Transfers strong", "Break-even cost", "Better use of a spot"]], hide_index=True, width="stretch",
                  column_config={"Recruits strong": st.column_config.NumberColumn(format="percent"), "Transfers strong": st.column_config.NumberColumn(format="percent"),
                                 "Break-even cost": st.column_config.NumberColumn(format="%.2f")})
@@ -485,7 +494,7 @@ def _decision():
     fig = go.Figure(go.Bar(y=S["Position"], x=S["Priority score"], orientation="h", marker_color=PSU, texttemplate="%{x:.1f}", textposition="outside", cliponaxis=False,
                            hovertemplate="%{y}: priority %{x:.1f} (spots times weight)<extra></extra>"))
     fig.update_layout(yaxis=dict(autorange="reversed")); fig.update_xaxes(title="Priority score (spots times weight)")
-    st.plotly_chart(style(fig, 330, legend=False))
+    ui.plot(style(fig, 330, legend=False))
     st.caption("Offensive line, special teams and athletes cannot be measured and are left out. Put in better numbers as you get them: spots from a depth chart and eligibility, weights from a coach's view.")
 
 
@@ -535,7 +544,7 @@ def _gap_chart(rows):
 def _championship_gap():
     st.subheader("Average over 2014 to 2025, in standard deviations above the FBS average")
     st.write("Higher is better, and defense is shown so that higher means fewer points allowed per play.")
-    st.plotly_chart(_gap_chart(D["gap"]))
+    ui.plot(_gap_chart(D["gap"]))
     st.caption("Numbers at the right: Penn State minus champions on that measure, in standard deviations (negative means Penn State is behind).")
     st.caption("Record, SP+ and per-play rows are partly circular because champions are chosen for winning. Talent and recruiting are the cleaner comparison. About 12 champions describe a profile and cannot predict a winner.")
     c1, c2 = st.columns(2)
@@ -546,7 +555,7 @@ def _championship_gap():
     fig = go.Figure(go.Bar(y=[f"{r[0]} ({r[1]})" for r in L], x=[r[2] for r in L], orientation="h", marker_color=PSU, texttemplate="%{x}%", textposition="outside", cliponaxis=False,
                            hovertemplate="Opponents ranked %{y}: Penn State won %{x}%<extra></extra>"))
     fig.update_layout(yaxis=dict(autorange="reversed")); fig.update_xaxes(range=[0, 105], title="Win percentage by the opponent's SP+ rank that season")
-    st.plotly_chart(style(fig, 280, legend=False))
+    ui.plot(style(fig, 280, legend=False))
     st.caption("Ohio State and Michigan are 18 of Penn State's 48 losses (1–11 and 3–7). Close games are 26–29, about a coin flip, so luck in close games does not explain the pattern.")
     st.subheader("Season by season")
     S = pd.DataFrame(D["seasons"], columns=["Season", "Record", "SP+ rank", "Talent rank", "Class rank"])
