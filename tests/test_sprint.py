@@ -330,6 +330,14 @@ class ForecastStatus(unittest.TestCase):
         self.assertEqual([r["name"] for r in data_check.unscored_class_members(forecast_data(), roster, 2025)], ["New Guy"])
         self.assertEqual(data_check.unscored_class_members(forecast_data(), None, 2025), [])
 
+    def test_unscored_reason_names_the_missing_input_never_the_player(self):
+        r = data_check.unscored_reason
+        self.assertIn("no individual production measure", r({"group": "OL"}))
+        self.assertIn("not covered by the production measure", r({"group": "ST"}))
+        for g in data_check.MEASURABLE_GROUPS:
+            self.assertIn("not recorded or reproducible", r({"group": g}))
+        self.assertIn("eligibility cannot be checked", r({}))
+
     def test_the_repository_records_chaz_coleman_as_transferred_with_date_and_source(self):
         import json
         rec = json.loads((ROOT / "roster_status.json").read_text())["watchClassStatus"]
@@ -378,8 +386,14 @@ class ForecastStatus(unittest.TestCase):
     def test_current_class_members_missing_from_the_forecast_are_shown_unranked(self):
         _, at = self.leaderboard()
         t = tables_by_columns(at)
-        missing = t[("Player", "Position")]["Player"].tolist()
+        un = t[("Player", "Position", "Why not scored")]
+        missing = un["Player"].tolist()
         self.assertEqual(len(missing), 10)
+        why = dict(zip(un["Player"], un["Why not scored"]))
+        self.assertTrue(why["Malachi Goodman"].startswith("Offensive line"))
+        self.assertTrue(why["Matthew Parker"].startswith("Kicker"))
+        self.assertTrue(why["Cam Smith"].startswith("Measurable position"))
+        self.assertEqual(sum(w.startswith("Measurable position") for w in why.values()), 7)
         self.assertIn("LaVar Arrington II", missing)
         self.assertNotIn("Chaz Coleman", missing)
         self.assertIn("no chance is computed for them here", texts(at))

@@ -25,6 +25,7 @@ def build(player_seasons, season, as_of, checks):
         raise SystemExit("duplicate athlete ids in the roster; fix the source before building")
     num = lambda v: None if pd.isna(v) else v
     players = [{"id": str(x.athlete_id), "name": f"{str(x.first_name).strip()} {str(x.last_name).strip()}", "position": num(x.position),
+                "group": num(x.pos_group),  # the pipeline's position group (QB, RB, WR, TE, DL, LB, DB, OL, ST)
                 "recruit_class": None if pd.isna(x.recruit_class_year) else int(x.recruit_class_year),
                 "recruit_type": num(x.recruit_type)} for x in r.sort_values(["last_name", "first_name"]).itertuples()]
     return {"season": season, "as_of": as_of, "players": players,

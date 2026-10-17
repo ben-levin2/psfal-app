@@ -299,6 +299,25 @@ def player_status(D, recorded=None, roster=None):
     return out, problems
 
 
+# Position groups the PSFAL production measure covers (psfal.modules.development.PRIMARY); the forecast's first-season production input
+# exists only for these.
+MEASURABLE_GROUPS = ("QB", "RB", "WR", "TE", "DL", "LB", "DB")
+
+
+def unscored_reason(player):
+    """Why a roster player from the forecast's class has no forecast, from his position group in the roster snapshot. Never a guess about
+    the player: it states which input or requirement is missing."""
+    group = player.get("group")
+    if group == "OL":
+        return "Offensive line: no individual production measure in public data, so the forecast's first-season production input does not exist."
+    if group == "ST":
+        return "Kicker, punter or snapper: not covered by the production measure the forecast uses."
+    if group in MEASURABLE_GROUPS:
+        return ("Measurable position with the forecast's inputs (rating, position, first-season production), but the model that made the list "
+                "is not recorded or reproducible, so no chance can be computed.")
+    return "Position group not recorded in the roster snapshot; eligibility cannot be checked."
+
+
 def unscored_class_members(D, roster, recruit_class):
     """Players on the roster snapshot from the forecast's recruiting class (high-school recruits) who are not in the forecast list. The list's
     model and selection rule are not recorded, so no chance can be computed for them here; they are listed so the gap is visible."""

@@ -120,7 +120,8 @@ _CSS = f"""
 /* Streamlit's word-break: break-word lets a narrow column split words at any letter ("Recruitin g"); the module-status tables and the
    forecast's wide tables wrap between words instead (those scroll sideways, first column pinned) */
 :is([class*="st-key-tbl_model_status"], [class*="st-key-tblpin_watch_class"]) [data-testid="stTable"] :is(td, th) p {{word-break: normal; overflow-wrap: normal;}}
-:is([class*="st-key-tblpin_watch_class_transferred"], [class*="st-key-tblpin_watch_class_unknown"]) td:last-child {{min-width: 22rem;}}  /* the status source */
+:is([class*="st-key-tblpin_watch_class_transferred"], [class*="st-key-tblpin_watch_class_unknown"], [class*="st-key-tblpin_watch_class_unscored"])
+  td:last-child {{min-width: 22rem;}}  /* the status source or reason */
 /* a wide table keeps its first column in view while it scrolls sideways */
 [class*="st-key-tblpin_"] td.col0, [class*="st-key-tblpin_"] th.col_heading.col0 {{position: sticky; left: 0; z-index: 1; background: {WHITE};
   box-shadow: 1px 0 0 #D6E0EE;}}

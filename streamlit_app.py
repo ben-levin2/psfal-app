@@ -549,7 +549,8 @@ def _recruit_forecast():
     missing = data_check.unscored_class_members(D, roster, 2025)
     if missing:
         st.markdown(f"**On the {roster['season']} roster but not in this forecast**")
-        ui.table(pd.DataFrame([{"Player": r["name"], "Position": r.get("position") or "—"} for r in missing]), "watch_class_unscored")
+        ui.table(pd.DataFrame([{"Player": r["name"], "Position": r.get("position") or "—", "Why not scored": data_check.unscored_reason(r)}
+                               for r in missing]), "watch_class_unscored", pin_first=True)
         st.caption(f"{len(missing)} recruits from the 2025 class are on the roster snapshot but not in the forecast list. The model and selection rule "
                    "behind the list are not recorded, so no chance is computed for them here and they are not ranked; this is not a judgment "
                    "that they will not become strong producers.")
