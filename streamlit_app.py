@@ -149,6 +149,24 @@ def _recorded_roster_status():
 RECORDED_STATUS, _STATUS_FILE_PROBLEM = _recorded_roster_status()
 
 
+def _roster_snapshot():
+    """The current-season roster snapshot: the data file's "rosterSnapshot" if it has a valid one, else roster_snapshot.json in this
+    repository (built by tools/build_roster_snapshot.py). Returns (snapshot or None, problems)."""
+    problems = []
+    f = HERE / "roster_snapshot.json"
+    try:
+        repo = json.loads(f.read_text()) if f.exists() else None
+    except ValueError:
+        repo, problems = None, ["roster_snapshot.json could not be read; roster status was not taken from it."]
+    for obj in (D.get("rosterSnapshot"), repo):
+        snap, problem = data_check.roster_snapshot(obj, SEASON, _today())
+        if problem:
+            problems.append(problem)
+        if snap:
+            return snap, problems
+    return None, problems
+
+
 def _development_by_star():
     """Separate four- and five-star development series from development_by_star.json in this repository (built by
     tools/build_development_by_star.py from the PSFAL player-season table), or None if the file is missing or unreadable."""
@@ -478,23 +496,38 @@ def _recruiting_intelligence():
 def _recruit_forecast():
     _model_header('Recruit Development Forecast')
     st.markdown("**Penn State's 2025 class: most likely strong producers by 2027**")
-    statuses, problems = data_check.player_status(D, RECORDED_STATUS)
-    problems += [_STATUS_FILE_PROBLEM] if _STATUS_FILE_PROBLEM else []
+    roster, roster_problems = _roster_snapshot()
+    statuses, problems = data_check.player_status(D, RECORDED_STATUS, roster)
+    problems += ([_STATUS_FILE_PROBLEM] if _STATUS_FILE_PROBLEM else []) + roster_problems
     base = ["Player", "Position", "Recruiting rating", "First-season production (2025)", CHANCE]
     wc = pd.DataFrame(D["watchClass"], columns=base)
-    wc[CHANCE] = (wc[CHANCE] * 100).round(0).astype(int)  # same rounding as before; kept as a number so the column sorts numerically
+    # ranks follow the ORIGINAL chances, never changed: "Original rank" is the place in the full list as generated, "Rank" the order among
+    # players confirmed on the current roster (the same order with departed players taken out)
+    # a row without a valid chance (0 to 1) gets no chance and no rank, and is reported; it never takes another player's place
+    wc[CHANCE] = pd.to_numeric(wc[CHANCE], errors="coerce").where(lambda c: c.between(0, 1))
+    problems += [f"{p}: no valid forecast chance in the data file; shown without a chance or rank." for p in wc.loc[wc[CHANCE].isna(), "Player"]]
+    wc["Original rank"] = wc[CHANCE].rank(ascending=False, method="min").astype("Int64")
+    wc[CHANCE] = (wc[CHANCE] * 100).round(0).astype("Int64")  # same rounding as before; kept as a number so the column sorts numerically
     wc["Roster status"] = [statuses[p]["status"] for p in wc["Player"]]
     wc["Status verified on"] = [statuses[p]["verified"] for p in wc["Player"]]
     wc["Status source"] = [statuses[p]["source"] or "not recorded" for p in wc["Player"]]
-    fmt = {"Recruiting rating": "{:.2f}", CHANCE: "{:d}%"}
+    is_current = wc["Roster status"] == "current"
+    wc.loc[is_current, "Rank"] = wc.loc[is_current, "Original rank"].astype(float).rank(method="min")  # float: a missing rank stays missing
+    wc = wc.sort_values("Original rank", kind="stable")
+    fmt = {"Recruiting rating": "{:.2f}", CHANCE: "{:d}%", "Rank": "{:.0f}"}
+    first = ["Player", "Original rank"]
+    rest = base[1:]
     # (statuses, heading, columns, note). Only a dated "current" status puts a player among current candidates; nothing is inferred.
-    groups = ((("current",), "Current Penn State candidates", base + ["Status verified on"],
-               "Players the data record as on the current Penn State roster, with the date that was checked."),
+    groups = ((("current",), "Current Penn State candidates", ["Player", "Rank", "Original rank"] + rest + ["Status verified on"],
+               "Players on the current Penn State roster, with the date that was checked. Rank is their order by the original forecast among "
+               "current players; Original rank is their place in the full list as it was generated. No chance has been changed."),
               (("transferred", "departed"), "Transferred or departed: historical predictions",
-               base + ["Roster status", "Status verified on", "Status source"],
+               first + rest + ["Roster status", "Status verified on", "Status source"],
                "These chances were generated before the player left. They are kept as a record of what the forecast said, not as current candidates."),
-              (("unknown",), "Current status unknown", base + ["Status verified on"], "The data record that these players' current status could not be determined."),
-              (("not verified",), "Roster status not verified", base,
+              (("unknown",), "Current status unknown: needs review", first + rest + ["Status verified on", "Status source"],
+               "These players' roster status could not be resolved (for example, a name that does not match the roster exactly). They are not "
+               "shown as current candidates until checked."),
+              (("not verified",), "Roster status not verified", first + rest,
                "Shown as originally generated. The data file does not record whether these players are still at Penn State, so none is presented as a "
                "current candidate. A player may have transferred or left since the list was made."))
     current = wc[wc["Roster status"] == "current"]
@@ -503,23 +536,35 @@ def _recruit_forecast():
         if want == ("current",):
             st.markdown(f"**{title}**")
             if len(rows):
-                ui.table(rows[cols], "watch_class_current", fmt)
+                ui.table(rows[cols], "watch_class_current", fmt, pin_first=True)  # eight columns: scrolls sideways on a phone, player pinned
                 st.caption(note)
             else:
                 st.info("No player in this list has a verified current Penn State roster status in the data, so nobody is shown here as a current "
                         "candidate.", icon=":material/person_search:")
         elif len(rows):
             st.markdown(f"**{title}**")
-            # the historical table carries a long source note: it scrolls sideways with the player pinned rather than squeezing every column
+            # tables with a long source note scroll sideways with the player pinned rather than squeezing every column
             ui.table(rows[cols], "watch_class" if want == ("not verified",) else f"watch_class_{want[0]}", fmt, pin_first="Status source" in cols)
             st.caption(note)
+    missing = data_check.unscored_class_members(D, roster, 2025)
+    if missing:
+        st.markdown(f"**On the {roster['season']} roster but not in this forecast**")
+        ui.table(pd.DataFrame([{"Player": r["name"], "Position": r.get("position") or "—"} for r in missing]), "watch_class_unscored")
+        st.caption(f"{len(missing)} recruits from the 2025 class are on the roster snapshot but not in the forecast list. The model and selection rule "
+                   "behind the list are not recorded, so no chance is computed for them here and they are not ranked; this is not a judgment "
+                   "that they will not become strong producers.")
     st.caption("A ranking aid with wide uncertainty.")
     for p in problems:
         st.caption(f"Data note: {p}")
     fr = data_check.section_freshness(D, "watchClass")
     checked = sorted({s["verified"] for s in statuses.values() if s["verified"]})
+    snap = ""
+    if roster:
+        prov = roster.get("provenance") or {}
+        snap = (f"  \n**Roster snapshot:** {roster['season']} roster as of {roster['as_of']}, {prov.get('source', 'source not recorded')}, "
+                f"{len(roster['players'])} players" + "".join(f". {c}" for c in prov.get("checks") or []))
     st.caption("**List generated:** " + (f"as stated in the data file: “{fr['stated']}”" if fr["stated"] else "date not recorded in the data")
-               + "  \n**Roster status checked:** " + (", ".join(checked) if checked else "not recorded in the data"))
+               + "  \n**Roster status checked:** " + (", ".join(checked) if checked else "not recorded in the data") + snap)
     with st.container(border=True, key="panel_forecast_guide"):
         st.markdown("**How to read this forecast**")
         st.markdown(

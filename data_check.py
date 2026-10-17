@@ -18,6 +18,7 @@ meta.freshness holds the builder's own note for a section; a note starting "NOT 
 is when the data file was last rebuilt successfully (ISO 8601). Neither is ever inferred: when the data do not state them, the dashboard says so.
 """
 import re
+import unicodedata
 from datetime import date, datetime
 
 from ui import game_date
@@ -187,18 +188,69 @@ def section_freshness(D, section):
 PLAYER_STATUSES = ("current", "transferred", "departed", "unknown")
 
 
-def player_status(D, recorded=None):
-    """Roster status of each player in the 2025-class forecast list, from the optional top-level field
-        "watchClassStatus": {"Player Name": {"status": "current" | "transferred" | "departed" | "unknown", "verified": "YYYY-MM-DD", "source": "..."}}
-    and, optionally, `recorded`: the same mapping from roster_status.json in this repository, where verified statuses are kept under version
-    control when the data file cannot be edited. For a player in both, the later verification date wins (the data file on a tie). Names in
+_SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+
+
+def name_key(name):
+    """A player's name for matching across sources: case, accents, punctuation and a trailing Jr./Sr./II/III are ignored
+    ('LaVar Arrington II' and 'Lavar Arrington' match; 'Jeff Exinor Jr.' and 'Jeff Exinor' match). Different first or last names never match."""
+    s = unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode().lower()
+    parts = re.sub(r"[^a-z0-9 ]+", " ", s.replace("'", "").replace("’", "")).split()
+    while len(parts) > 2 and parts[-1] in _SUFFIXES:
+        parts.pop()
+    return " ".join(parts)
+
+
+def roster_snapshot(obj, season, today):
+    """A validated roster snapshot ({"season", "as_of", "players": [{"id", "name", "recruit_class", ...}], "provenance"}), or (None, problem).
+    It is used only for the current season, only if its date is not in the future, and only if no athlete id appears twice."""
+    if obj is None:
+        return None, None
+    if not isinstance(obj, dict) or not isinstance(obj.get("players"), list) or not obj["players"]:
+        return None, "The roster snapshot is malformed; roster status was not taken from it."
+    if obj.get("season") != season:
+        return None, f"The roster snapshot is for {obj.get('season')}, not {season}; roster status was not taken from it."
+    try:
+        as_of = date.fromisoformat(str(obj.get("as_of", "")))
+    except ValueError:
+        return None, "The roster snapshot has no valid as_of date; roster status was not taken from it."
+    if as_of > today:
+        return None, f"The roster snapshot is dated {as_of.isoformat()}, after today; roster status was not taken from it."
+    players = [p for p in obj["players"] if isinstance(p, dict) and isinstance(p.get("name"), str) and p["name"].strip()]
+    ids = [str(p.get("id")) for p in players if p.get("id") is not None]
+    if len(players) != len(obj["players"]) or len(ids) != len(set(ids)):
+        return None, "The roster snapshot has unnamed players or repeated athlete ids; roster status was not taken from it."
+    return {**obj, "as_of": as_of.isoformat(), "players": players}, None
+
+
+def player_status(D, recorded=None, roster=None):
+    """Roster status of each player in the 2025-class forecast list. Sources, each giving a status with a verification date:
+      1. the data file's optional "watchClassStatus": {"Player Name": {"status": "current" | "transferred" | "departed" | "unknown",
+         "verified": "YYYY-MM-DD", "source": "..."}}
+      2. `recorded`: the same mapping from roster_status.json in this repository (dated records such as a confirmed transfer)
+      3. `roster`: a roster snapshot validated by roster_snapshot(). On it: current (verified on its as_of date); not on it: departed;
+         two roster players with the same name: unknown, flagged.
+    The latest verification date wins; on a tie the earlier source in this list wins. Names are matched with name_key(). Names in
     roster_status.json that are not in this forecast list are skipped silently, because the list in the data file may differ.
-    Returns ({player: {"status", "verified", "source"}}, problems). A player without a valid entry is "not verified". An entry needs a
-    known status AND a valid verification date to count: a status nobody dated is not treated as checked. Nothing is ever inferred, and the
-    forecast itself is never changed: a status only decides which group the original prediction is listed under."""
+    Returns ({player: {"status", "verified", "source"}}, problems). A player with no valid entry from any source is "not verified". An entry
+    needs a known status AND a valid date to count. Nothing is inferred beyond the roster itself, and the forecast is never changed: a status
+    only decides which group the original prediction is listed under."""
     players = [r[0] for r in D.get("watchClass") or [] if isinstance(r, (list, tuple)) and r]
     out = {p: {"status": "not verified", "verified": None, "source": None} for p in players}
     problems = []
+    by_key = {}
+    for p in players:
+        by_key.setdefault(name_key(p), []).append(p)
+    for k, same in by_key.items():
+        if len(same) > 1:
+            problems.append(f"The forecast list has {len(same)} entries for one player ({', '.join(map(repr, same))}); their status is shown as "
+                            "unknown until the list is corrected.")
+
+    def put(name, status, verified, source):
+        if out[name]["verified"] is not None and out[name]["verified"] >= verified:
+            return  # an equal or later check is already recorded
+        out[name] = {"status": status, "verified": verified, "source": source}
+
     for raw, where, strict in ((D.get("watchClassStatus"), "watchClassStatus", True), (recorded, "roster_status.json", False)):
         if raw is None:
             continue
@@ -206,8 +258,9 @@ def player_status(D, recorded=None):
             problems.append(f"{where} should map each player's name to {{status, verified, source}}; it was ignored.")
             continue
         for name, e in raw.items():
-            if name not in out:
-                if strict:
+            match = by_key.get(name_key(name), [])
+            if len(match) != 1:
+                if strict and not match:
                     problems.append(f"{where} names {name!r}, who is not in the forecast list; ignored.")
                 continue
             if not isinstance(e, dict) or e.get("status") not in PLAYER_STATUSES:
@@ -218,11 +271,42 @@ def player_status(D, recorded=None):
             except ValueError:
                 problems.append(f"{where}[{name!r}].verified should be a date (YYYY-MM-DD); shown as not verified.")
                 continue
-            if out[name]["verified"] is not None and out[name]["verified"] >= verified:
-                continue  # an equal or later check is already recorded
-            source = e.get("source") if isinstance(e.get("source"), str) and e.get("source").strip() else None
-            out[name] = {"status": e["status"], "verified": verified, "source": source}
+            put(match[0], e["status"], verified, e.get("source") if isinstance(e.get("source"), str) and e.get("source").strip() else None)
+    if roster is not None:
+        on = {}
+        for r in roster["players"]:
+            on.setdefault(name_key(r["name"]), []).append(r)
+        label = f"the {roster['season']} roster snapshot (as of {roster['as_of']}; {(roster.get('provenance') or {}).get('source', 'source not recorded')})"
+        for k, names in by_key.items():
+            if len(names) != 1:
+                continue
+            hits = on.get(k, [])
+            # not found by name, but a roster player has the same last name and first initial ('Josh' for 'Joshua'): never call that a departure
+            near = [r["name"] for key, rs in on.items() for r in rs
+                    if not hits and key.split()[-1:] == k.split()[-1:] and key[:1] == k[:1]]
+            if len(hits) == 1:
+                put(names[0], "current", roster["as_of"], f"On {label}.")
+            elif near:
+                put(names[0], "unknown", roster["as_of"], f"Not on {label} under this name; possible match: {', '.join(near)}. Not resolved.")
+            elif not hits:
+                put(names[0], "departed", roster["as_of"], f"Not on {label}.")
+            else:
+                put(names[0], "unknown", roster["as_of"], f"{len(hits)} players on {label} share this name; not resolved.")
+    for k, names in by_key.items():
+        if len(names) > 1:
+            for n in names:
+                out[n] = {"status": "unknown", "verified": None, "source": "Listed more than once in the forecast list."}
     return out, problems
+
+
+def unscored_class_members(D, roster, recruit_class):
+    """Players on the roster snapshot from the forecast's recruiting class (high-school recruits) who are not in the forecast list. The list's
+    model and selection rule are not recorded, so no chance can be computed for them here; they are listed so the gap is visible."""
+    if roster is None:
+        return []
+    listed = {name_key(r[0]) for r in D.get("watchClass") or [] if isinstance(r, (list, tuple)) and r}
+    return [r for r in roster["players"] if r.get("recruit_class") == recruit_class and r.get("recruit_type") in (None, "HighSchool")
+            and name_key(r["name"]) not in listed]
 
 
 def star_series(traj, keys):
