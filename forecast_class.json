@@ -1,0 +1,838 @@
+{
+ "recruit_class": 2025,
+ "as_of": "2026-10-14",
+ "players": [
+  {
+   "id": "5195702",
+   "name": "Alex Tatsch",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106518",
+   "match_method": "athlete_id",
+   "rating": 0.9018,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": "stat_defensive_tot",
+    "primary_value": 14.0
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 25,
+    "position": "LB"
+   }
+  },
+  {
+   "id": "5201878",
+   "name": "Andrew Olesh",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106248",
+   "match_method": "athlete_id",
+   "rating": 0.9702,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_receiving_yds",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5141547",
+   "name": "Bekkem Kritza",
+   "position": "QB",
+   "group": "QB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106987",
+   "match_method": "athlete_id",
+   "rating": 0.8744,
+   "stars": 3,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_passing_yds",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5142616",
+   "name": "Brady O'Hara",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106855",
+   "match_method": "athlete_id",
+   "rating": 0.8794,
+   "stars": 3,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": null,
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5164363",
+   "name": "Braswell Thomas",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106954",
+   "match_method": "athlete_id",
+   "rating": 0.8753,
+   "stars": 3,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_defensive_tot",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5211208",
+   "name": "Brian Kortovich",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106721",
+   "match_method": "athlete_id",
+   "rating": 0.8868,
+   "stars": 3,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_receiving_yds",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 83,
+    "position": "TE"
+   }
+  },
+  {
+   "id": "5142598",
+   "name": "Cam Smith",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106558",
+   "match_method": "athlete_id",
+   "rating": 0.8983,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_defensive_tot",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 26,
+    "position": "LB"
+   }
+  },
+  {
+   "id": "5237359",
+   "name": "Chaz Coleman",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106483",
+   "match_method": "athlete_id",
+   "rating": 0.9065,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": "stat_defensive_tfl",
+    "primary_value": 3.0
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5141504",
+   "name": "Cortez Harris",
+   "position": "DL",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106638",
+   "match_method": "athlete_id",
+   "rating": 0.8925,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_defensive_tfl",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5209336",
+   "name": "Daniel Jennings",
+   "position": "DL",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106587",
+   "match_method": "athlete_id",
+   "rating": 0.8956,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_defensive_tfl",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5141411",
+   "name": "Daryus Dixson",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106303",
+   "match_method": "athlete_id",
+   "rating": 0.9466,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": "stat_defensive_tot",
+    "primary_value": 24.0
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 5,
+    "position": "CB"
+   }
+  },
+  {
+   "id": "5141393",
+   "name": "Dayshaun Burnett",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106538",
+   "match_method": "athlete_id",
+   "rating": 0.9,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_defensive_tfl",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 43,
+    "position": "DE"
+   }
+  },
+  {
+   "id": "5141742",
+   "name": "Jabree Coleman",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106486",
+   "match_method": "athlete_id",
+   "rating": 0.9061,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_rushing_yds",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5141548",
+   "name": "Jahmir Joseph",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106439",
+   "match_method": "athlete_id",
+   "rating": 0.914,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": "stat_defensive_tot",
+    "primary_value": 7.0
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 0,
+    "position": "CB"
+   }
+  },
+  {
+   "id": "5141443",
+   "name": "Jeff Exinor Jr.",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106533",
+   "match_method": "athlete_id",
+   "rating": 0.9004,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_receiving_yds",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5214530",
+   "name": "Joshua Johnson",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "107022",
+   "match_method": "athlete_id",
+   "rating": 0.8733,
+   "stars": 3,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": "stat_defensive_tot",
+    "primary_value": 1.0
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 15,
+    "position": "CB"
+   }
+  },
+  {
+   "id": "5141525",
+   "name": "Koby Howard",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106667",
+   "match_method": "athlete_id",
+   "rating": 0.89,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": "stat_receiving_yds",
+    "primary_value": 133.0
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 6,
+    "position": "WR"
+   }
+  },
+  {
+   "id": "5214556",
+   "name": "LaVar Arrington II",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106507",
+   "match_method": "athlete_id",
+   "rating": 0.9028,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_defensive_tfl",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 11,
+    "position": "DE"
+   }
+  },
+  {
+   "id": "5164361",
+   "name": "Lyrick Samuel",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106602",
+   "match_method": "athlete_id",
+   "rating": 0.8948,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_receiving_yds",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 11,
+    "position": "WR"
+   }
+  },
+  {
+   "id": "5208134",
+   "name": "Malachi Goodman",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106247",
+   "match_method": "athlete_id",
+   "rating": 0.9702,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": null,
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 78,
+    "position": "OL"
+   }
+  },
+  {
+   "id": "5211862",
+   "name": "Matt Henderson",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106512",
+   "match_method": "athlete_id",
+   "rating": 0.9024,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_receiving_yds",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5208136",
+   "name": "Matthew Outten",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106501",
+   "match_method": "athlete_id",
+   "rating": 0.9041,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_receiving_yds",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5294256",
+   "name": "Matthew Parker",
+   "position": "PK",
+   "group": "ST",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "221630",
+   "match_method": "athlete_id",
+   "rating": 0.79,
+   "stars": 2,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": null,
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 98,
+    "position": "K"
+   }
+  },
+  {
+   "id": "5198202",
+   "name": "Michael Troutman III",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106907",
+   "match_method": "athlete_id",
+   "rating": 0.8772,
+   "stars": 3,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": null,
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5164630",
+   "name": "Owen Aliciene",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106585",
+   "match_method": "athlete_id",
+   "rating": 0.8956,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": null,
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 77,
+    "position": "OL"
+   }
+  },
+  {
+   "id": "5149000",
+   "name": "Randy Adirika",
+   "position": "DL",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106787",
+   "match_method": "athlete_id",
+   "rating": 0.8825,
+   "stars": 3,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_defensive_tfl",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5141489",
+   "name": "Tikey Hayes",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106619",
+   "match_method": "athlete_id",
+   "rating": 0.8933,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": "stat_rushing_yds",
+    "primary_value": 18.0
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": false,
+    "jersey": null,
+    "position": null
+   }
+  },
+  {
+   "id": "5193689",
+   "name": "Xxavier Thomas",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106806",
+   "match_method": "athlete_id",
+   "rating": 0.8814,
+   "stars": 3,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": false,
+    "primary_stat": "stat_defensive_tot",
+    "primary_value": null
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 12,
+    "position": "S"
+   }
+  },
+  {
+   "id": "5213238",
+   "name": "Yvan Kemajou",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool",
+   "recruit_ids": "106506",
+   "match_method": "athlete_id",
+   "rating": 0.9031,
+   "stars": 4,
+   "first_roster_season": 2025,
+   "arrival_uncertain": false,
+   "first_season": {
+    "season": 2025,
+    "has_stat_row": true,
+    "primary_stat": "stat_defensive_tfl",
+    "primary_value": 5.0
+   },
+   "official_roster_check": {
+    "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+    "date": "2026-10-17",
+    "season": 2026,
+    "listed": true,
+    "jersey": 19,
+    "position": "DE"
+   }
+  }
+ ],
+ "provenance": {
+  "source": "CFBD roster, recruiting and season-stat data via the PSFAL pipeline's player-season table",
+  "data": "player_seasons.parquet, SHA-256 cd67a64b438c13f0d033de0ca685630a80d7d3a238048b8afc6d915e72957525",
+  "primary_stats": {
+   "QB": "stat_passing_yds",
+   "RB": "stat_rushing_yds",
+   "WR": "stat_receiving_yds",
+   "TE": "stat_receiving_yds",
+   "DL": "stat_defensive_tfl",
+   "LB": "stat_defensive_tot",
+   "DB": "stat_defensive_tot"
+  },
+  "official_roster_check": {
+   "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+   "date": "2026-10-17",
+   "season": 2026,
+   "scope": "2025 recruiting class (29 high-school recruits)"
+  },
+  "built": "2026-10-17"
+ }
+}

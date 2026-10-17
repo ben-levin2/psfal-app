@@ -209,6 +209,20 @@ NOW = ("roster_snapshot.json",)  # leave the repository's real snapshot out of t
 BASE = ("Position", "Recruiting rating", "First-season production (2025)", CH)
 
 
+def recruit(group="DL", row=True, value=None, method="athlete_id", rating=0.9, first=True, klass=2025, rtype="HighSchool", arrival=2025,
+            uncertain=False, name="Test Player", pid="1", listed=None):
+    """A synthetic forecast-class record of one recruit (the shape tools/build_forecast_class.py writes)."""
+    return {"id": pid, "name": name, "position": group, "group": group, "recruit_class": klass, "recruit_type": rtype, "match_method": method,
+            "rating": rating, "stars": 4, "first_roster_season": arrival, "arrival_uncertain": uncertain,
+            "first_season": {"season": 2025, "has_stat_row": row, "primary_stat": "x", "primary_value": value if row else None} if first else None,
+            "official_roster_check": None if listed is None else {"source": "test official roster", "date": "2026-10-17", "season": 2026,
+                                                                  "listed": listed}}
+
+
+def class_record(*players):
+    return {"recruit_class": 2025, "as_of": "2026-10-14", "players": list(players), "provenance": {"source": "test"}}
+
+
 class ForecastStatus(unittest.TestCase):
     def test_no_status_data_means_not_verified_for_everyone(self):
         st, problems = data_check.player_status(forecast_data())
@@ -243,16 +257,15 @@ class ForecastStatus(unittest.TestCase):
 
     def test_departed_player_moves_to_historical_predictions(self):
         at = self.view(forecast_data({"Stayer": {"status": "current", "verified": "2026-10-15", "source": "roster page"},
-                                      "Leaver": {"status": "transferred", "verified": "2026-10-15"},
+                                      "Leaver": {"status": "transferred", "verified": "2026-10-15", "destination": "Elsewhere"},
                                       "Unsure": {"status": "unknown", "verified": "2026-10-15"}}))
         from test_child15_dashboard import tables
         self.assertEqual(len(tables(at)), 3)  # current, transferred or departed, unknown
-        cur, _, unknown = tables(at)
+        cur, gone, unknown = tables(at)  # by order: the historical and unresolved tables have the same columns
         self.assertEqual(unknown["Player"].tolist(), ["Unsure"])
-        t = tables_by_columns(at)
         md = [m.value for m in at.markdown]
         self.assertLess(md.index("**Current Penn State candidates**"), md.index("**Transferred or departed: historical predictions**"))
-        gone = t[("Player", "Original rank") + BASE + ("Roster status", "Status verified on", "Status source")]
+        self.assertLess(md.index("**Transferred or departed: historical predictions**"), md.index("**Roster status unresolved: needs review**"))
         self.assertEqual(gone["Player"].tolist(), ["Leaver"])
         self.assertEqual(gone["Roster status"].tolist(), ["transferred"])
         self.assertIn("**Roster status checked:** 2026-10-15", texts(at))
@@ -261,7 +274,7 @@ class ForecastStatus(unittest.TestCase):
         self.assertNotIn("Leaver", [s for s in cur["Player"]])
 
     def test_recorded_status_merges_with_the_data_file_and_the_later_check_wins(self):
-        rec = {"Leaver": {"status": "transferred", "verified": "2026-10-17", "source": "news report"},
+        rec = {"Leaver": {"status": "transferred", "verified": "2026-10-17", "source": "news report", "destination": "Elsewhere"},
                "Somebody else": {"status": "departed", "verified": "2026-10-17"}}  # not in this list: skipped without a warning
         st, problems = data_check.player_status(forecast_data(), rec)
         self.assertEqual(st["Leaver"], {"status": "transferred", "verified": "2026-10-17", "source": "news report"})
@@ -289,23 +302,23 @@ class ForecastStatus(unittest.TestCase):
         st, problems = data_check.player_status(forecast_data(), {"leaver": {"status": "departed", "verified": "2026-10-17"}})
         self.assertEqual(st["Leaver"]["status"], "departed")  # a record spelled differently still reaches its player
 
-    def test_the_roster_decides_current_and_departed_and_flags_what_it_cannot_resolve(self):
+    def test_one_roster_source_decides_current_but_its_absence_is_only_unconfirmed(self):
         d = forecast_data()
         d["watchClass"].append(["Joshua Near", "DB", 0.88, "1 tackle", 0.4])
         roster, problem = data_check.roster_snapshot(snapshot(["Stayer", "Unsure", "Unsure", "Josh Near"]), 2026, TODAY)
         self.assertIsNone(problem)
         st, _ = data_check.player_status(d, None, roster)
         self.assertEqual((st["Stayer"]["status"], st["Stayer"]["verified"]), ("current", "2026-10-14"))
-        self.assertEqual(st["Leaver"]["status"], "departed")  # not on the roster
+        self.assertEqual(st["Leaver"]["status"], "not_on_roster_snapshot_unconfirmed")  # absent from one source: never a departure
         self.assertEqual(st["Unsure"]["status"], "unknown")   # two roster players share the name: never guessed
         self.assertEqual(st["Joshua Near"]["status"], "unknown")  # 'Josh Near' may be him: never called a departure
         self.assertIn("possible match: Josh Near", st["Joshua Near"]["source"])
 
     def test_a_dated_record_and_the_roster_snapshot_the_later_one_wins(self):
         roster, _ = data_check.roster_snapshot(snapshot(["Stayer", "Leaver"]), 2026, TODAY)
-        rec = {"Leaver": {"status": "transferred", "verified": "2026-10-17", "source": "news"}}
+        rec = {"Leaver": {"status": "transferred", "verified": "2026-10-17", "source": "news", "destination": "Elsewhere"}}
         self.assertEqual(data_check.player_status(forecast_data(), rec, roster)[0]["Leaver"]["status"], "transferred")
-        old = {"Leaver": {"status": "transferred", "verified": "2026-09-01", "source": "old news"}}
+        old = {"Leaver": {"status": "transferred", "verified": "2026-09-01", "source": "old news", "destination": "Elsewhere"}}
         self.assertEqual(data_check.player_status(forecast_data(), old, roster)[0]["Leaver"]["status"], "current")  # the later roster wins
 
     def test_stale_or_malformed_roster_snapshots_are_not_used(self):
@@ -330,19 +343,183 @@ class ForecastStatus(unittest.TestCase):
         self.assertEqual([r["name"] for r in data_check.unscored_class_members(forecast_data(), roster, 2025)], ["New Guy"])
         self.assertEqual(data_check.unscored_class_members(forecast_data(), None, 2025), [])
 
-    def test_unscored_reason_names_the_missing_input_never_the_player(self):
+    def test_unscored_reason_names_the_missing_input_or_rule(self):
         r = data_check.unscored_reason
-        self.assertIn("no individual production measure", r({"group": "OL"}))
-        self.assertIn("not covered by the production measure", r({"group": "ST"}))
-        for g in data_check.MEASURABLE_GROUPS:
-            self.assertIn("not recorded or reproducible", r({"group": g}))
-        self.assertIn("eligibility cannot be checked", r({}))
+        self.assertEqual(r(recruit(group="OL")), "Not forecastable with public production data: offensive line.")
+        self.assertEqual(r(recruit(group="ST")), "Not forecastable with public production data: specialist (kicker, punter or snapper).")
+        self.assertEqual(r(recruit(row=False)), data_check.NO_RECORDED_PRODUCTION)
+        self.assertTrue(r(recruit(value=5)).startswith("Recorded first-season production; not in the original list"))
+        self.assertTrue(r(recruit(method="name")).startswith("Needs review: Linked to the roster by name only"))
+
+    # ---- Step 2: missing data (R4), eligibility (R1-R3, R5, R7) and roster status (R6)
+    def test_every_production_state(self):
+        ps = data_check.production_state
+        self.assertEqual(ps(recruit(value=5)), "recorded_positive")
+        self.assertEqual(ps(recruit(value=0)), "recorded_zero")
+        self.assertEqual(ps(recruit(value=-3)), "recorded_zero")   # e.g. negative rushing yards: recorded, not positive
+        self.assertEqual(ps(recruit(value=None)), "recorded_zero")  # a stat row without the primary category
+        self.assertEqual(ps(recruit(row=False)), "no_stat_row")
+        self.assertEqual(ps(recruit(first=False)), "no_stat_row")
+        for g in ("OL", "ST", "ATH", "OTHER", None):
+            self.assertEqual(ps(recruit(group=g, value=5)), "not_measurable")
+
+    def test_missing_production_never_becomes_zero(self):
+        import json
+        k = json.loads((ROOT / "forecast_class.json").read_text())
+        missing = [p for p in k["players"] if p["first_season"] and not p["first_season"]["has_stat_row"]]
+        self.assertTrue(missing)
+        for p in missing:
+            self.assertIsNone(p["first_season"]["primary_value"])  # stored as unknown, never 0
+            self.assertNotEqual(data_check.production_state(p), "recorded_zero")
+        self.assertEqual(data_check.NO_RECORDED_PRODUCTION, "No recorded first-season production — unknown; eligibility/scoring treatment pending.")
+
+    def test_the_2025_class_keeps_the_audited_counts(self):
+        import json
+        from collections import Counter
+        k, problem = data_check.forecast_class(json.loads((ROOT / "forecast_class.json").read_text()), 2025)
+        self.assertIsNone(problem)
+        self.assertEqual(len(k["players"]), 29)
+        self.assertEqual(Counter(data_check.production_state(p) for p in k["players"]),
+                         {"recorded_positive": 8, "no_stat_row": 16, "not_measurable": 5})
+        e = [data_check.eligibility(p, 2025) for p in k["players"]]
+        self.assertEqual(Counter(x["decision"] for x in e), {"eligible": 24, "ineligible": 5})
+        self.assertEqual(Counter(x["reason"] for x in e if x["decision"] == "ineligible"),
+                         {"Not forecastable with public production data: offensive line.": 4,
+                          "Not forecastable with public production data: specialist (kicker, punter or snapper).": 1})
+        self.assertEqual(sum(p["official_roster_check"]["listed"] for p in k["players"]), 15)
+
+    def test_eligibility_reasons_are_explicit_and_reproducible(self):
+        el = lambda **kw: data_check.eligibility(recruit(**kw), 2025)
+        cases = {
+            "eligible": ({}, "Meets the population, identity, position, rating and first-season rules."),
+            "other class": ({"klass": 2024}, "Not a high-school recruit of the 2025 class."),
+            "junior college": ({"rtype": "JUCO"}, "Not a high-school recruit of the 2025 class."),
+            "name only": ({"method": "name"}, "Linked to the roster by name only; identity needs review."),
+            "no link": ({"method": "none"}, "No roster identity link (athlete id or recruit id)."),
+            "recruit id link": ({"method": "recruit_id"}, "Meets the population, identity, position, rating and first-season rules."),
+            "offensive line": ({"group": "OL"}, "Not forecastable with public production data: offensive line."),
+            "athlete": ({"group": "ATH"}, "Not forecastable with public production data: athlete without a set position."),
+            "no rating": ({"rating": None}, "Missing recruiting rating."),
+            "no first season": ({"first": False}, "Not on the roster in 2025, so there is no first program season."),
+            "late arrival": ({"arrival": 2026}, "First program season not confirmed by the roster; needs review."),
+            "uncertain arrival": ({"uncertain": True}, "First program season not confirmed by the roster; needs review."),
+        }
+        for label, (kw, reason) in cases.items():
+            self.assertEqual(el(**kw)["reason"], reason, label)
+            self.assertEqual(el(**kw), el(**kw), label)  # the same input always gives the same decision
+        self.assertEqual(el(method="name")["decision"], "review")
+        self.assertEqual(el(rating=None)["decision"], "ineligible")
+        self.assertEqual(el(row=False)["decision"], "eligible")  # unknown production is reported separately, not as ineligibility
+
+    def test_athlete_ids_take_precedence_over_names(self):
+        d = fixture(); d["watchClass"] = [["Sam Jones", "DL", 0.9, "x", 0.6]]
+        k = class_record(recruit(name="Sam Jones", pid="7"))
+        on_by_id, _ = data_check.roster_snapshot({**snapshot(["Samuel Jones-Smith"]), "players": [{"id": "7", "name": "Samuel Jones-Smith"}]}, 2026, TODAY)
+        self.assertEqual(data_check.player_status(d, None, on_by_id, k)[0]["Sam Jones"]["status"], "current")  # same id, different name
+        namesake, _ = data_check.roster_snapshot({**snapshot(["Sam Jones"]), "players": [{"id": "99", "name": "Sam Jones"}]}, 2026, TODAY)
+        self.assertEqual(data_check.player_status(d, None, namesake, k)[0]["Sam Jones"]["status"],
+                         "not_on_roster_snapshot_unconfirmed")  # a different player with his name does not count
+
+    def test_ambiguous_identity_goes_to_review(self):
+        d = fixture(); d["watchClass"] = [["Sam Jones", "DL", 0.9, "x", 0.6]]
+        k = class_record(recruit(name="Sam Jones", pid="7"), recruit(name="Sam Jones Jr.", pid="8"))
+        roster, _ = data_check.roster_snapshot(snapshot(["Sam Jones"]), 2026, TODAY)
+        st = data_check.player_status(d, None, roster, k)[0]["Sam Jones"]
+        self.assertEqual(st["status"], "unknown")
+        self.assertIn("identity needs review", st["source"])
+
+    def test_two_independent_roster_sources_are_needed_for_a_departure(self):
+        d = fixture(); d["watchClass"] = [["Sam Jones", "DL", 0.9, "x", 0.6]]
+        roster, _ = data_check.roster_snapshot(snapshot(["Someone Else"]), 2026, TODAY)
+        one = data_check.player_status(d, None, roster, class_record(recruit(name="Sam Jones")))[0]["Sam Jones"]
+        self.assertEqual((one["status"], one["verified"]), ("not_on_roster_snapshot_unconfirmed", "2026-10-14"))
+        two = data_check.player_status(d, None, roster, class_record(recruit(name="Sam Jones", listed=False)))[0]["Sam Jones"]
+        self.assertEqual((two["status"], two["verified"]), ("departed", "2026-10-17"))
+        self.assertIn("Not listed on the official 2026 roster (checked 2026-10-17", two["source"])
+        both_on, _ = data_check.roster_snapshot({**snapshot(["Sam Jones"]), "players": [{"id": "1", "name": "Sam Jones"}]}, 2026, TODAY)
+        self.assertEqual(data_check.player_status(d, None, both_on, class_record(recruit(name="Sam Jones", listed=True)))[0]["Sam Jones"]["status"], "current")
+        split = data_check.player_status(d, None, both_on, class_record(recruit(name="Sam Jones", listed=False)))[0]["Sam Jones"]
+        self.assertEqual(split["status"], "unknown")  # the sources disagree: needs review, not a guess
+        self.assertIn("The sources disagree", split["source"])
+
+    def test_a_transfer_needs_a_named_destination(self):
+        d = forecast_data()
+        st, problems = data_check.player_status(d, {"Leaver": {"status": "transferred", "verified": "2026-10-17", "source": "news"}})
+        self.assertEqual(st["Leaver"]["status"], "not verified")
+        self.assertEqual(problems, ["roster_status.json['Leaver'] says transferred but names no destination; ignored."])
+
+    def test_an_unconfirmed_absence_is_flagged_for_review_and_never_current(self):
+        d = forecast_data()
+        d["rosterSnapshot"] = snapshot(["Stayer", "Unsure"], as_of="2026-10-16")
+        at = self.view(d, today="2026-10-17", without=("forecast_class.json",))
+        t = tables_by_columns(at)
+        review = t[("Player", "Original rank") + BASE + ("Roster status", "Status verified on", "Status source")]
+        self.assertEqual(review["Player"].tolist(), ["Leaver"])
+        self.assertEqual(review["Roster status"].tolist(), ["not on roster snapshot (unconfirmed)"])
+        self.assertIn("**Roster status unresolved: needs review**", [m.value for m in at.markdown])
+        self.assertNotIn("Leaver", t[("Player", "Rank", "Original rank") + BASE + ("Status verified on",)]["Player"].tolist())
+
+    def test_a_supported_transfer_stays_historical_with_its_probability_and_is_not_a_failure(self):
+        d, at = self.leaderboard()
+        t = tables_by_columns(at)
+        gone = t[("Player", "Original rank") + BASE + ("Roster status", "Status verified on", "Status source")]
+        self.assertEqual(gone[["Player", "Original rank", CH, "Roster status"]].values.tolist(), [["Chaz Coleman", 2, 75, "transferred"]])
+        self.assertIn("A transfer or departure is not counted as a failed prediction", texts(at))
+        for row in d["watchClass"]:  # every original chance is shown exactly as generated
+            shown = [r for x in t.values() if "Player" in x.columns and CH in x.columns for _, r in x.iterrows() if r["Player"] == row[0]]
+            self.assertEqual([int(r[CH]) for r in shown], [round(row[4] * 100)])
+
+    # ---- secondary identity evidence: jersey and position (never a key, never roster status by itself)
+    def test_position_groups_follow_the_pipeline_mapping(self):
+        g = data_check.position_group
+        self.assertEqual([g(x) for x in ("DE", "CB", "S", "LB", "K", "PK", "OL", "WR", "EDGE", "QB", "ATH", "XYZ", None)],
+                         ["DL", "DB", "DB", "LB", "ST", "ST", "OL", "WR", "DL", "QB", "ATH", "OTHER", "OTHER"])
+
+    def test_a_shared_jersey_never_merges_players_or_sets_a_status(self):
+        d = fixture(); d["watchClass"] = [["Ann One", "DE", 0.9, "x", 0.6], ["Bob Two", "WR", 0.9, "x", 0.5]]
+        k = class_record(recruit(name="Ann One", pid="1", listed=True), recruit(name="Bob Two", pid="2", group="WR", listed=True))
+        for c in k["players"]:
+            c["official_roster_check"]["jersey"] = 11
+        roster, _ = data_check.roster_snapshot({**snapshot(["x"]), "players": [{"id": "1", "name": "Ann One", "position": "DE", "jersey": 11},
+                                                                              {"id": "2", "name": "Bob Two", "position": "WR", "jersey": 11}]}, 2026, TODAY)
+        st, problems = data_check.player_status(d, None, roster, k)
+        self.assertEqual((st["Ann One"]["status"], st["Bob Two"]["status"]), ("current", "current"))  # two players, both kept
+        self.assertEqual(problems, [])
+        only_number, _ = data_check.roster_snapshot({**snapshot(["x"]), "players": [{"id": "9", "name": "Someone Else", "jersey": 11}]}, 2026, TODAY)
+        st, _ = data_check.player_status(d, None, only_number, class_record(recruit(name="Ann One", pid="1")))
+        self.assertEqual(st["Ann One"]["status"], "not_on_roster_snapshot_unconfirmed")  # his number on another player proves nothing
+
+    def test_a_jersey_or_position_difference_is_flagged_without_changing_status(self):
+        d = fixture(); d["watchClass"] = [["Ann One", "DE", 0.9, "x", 0.6]]
+        k = class_record(recruit(name="Ann One", pid="1", listed=True))
+        k["players"][0]["official_roster_check"].update(jersey=0, position="DE")
+        roster, _ = data_check.roster_snapshot({**snapshot(["x"]), "players": [{"id": "1", "name": "Ann One", "position": "DE", "jersey": 23}]}, 2026, TODAY)
+        st, problems = data_check.player_status(d, None, roster, k)
+        self.assertEqual(st["Ann One"]["status"], "current")
+        self.assertEqual(problems, ["Ann One: jersey differs (CFBD roster #23, official roster #0). Secondary identity check only; needs human review. "
+                                    "Status unchanged."])
+
+    def test_a_position_group_disagreement_sends_eligibility_to_review(self):
+        same = recruit(group="DB", listed=True); same["official_roster_check"]["position"] = "S"  # CB in CFBD, S officially: both DB
+        self.assertEqual(data_check.eligibility(same, 2025)["decision"], "eligible")
+        moved = recruit(group="WR", listed=True); moved["official_roster_check"]["position"] = "CB"
+        self.assertEqual(data_check.eligibility(moved, 2025),
+                         {"decision": "review", "reason": "Position group differs between CFBD (WR) and the official roster (CB = DB); needs review."})
+
+    def test_the_verified_official_jerseys_and_positions_are_recorded(self):
+        import json
+        k = {p["name"]: p["official_roster_check"] for p in json.loads((ROOT / "forecast_class.json").read_text())["players"]}
+        self.assertEqual((k["Yvan Kemajou"]["jersey"], k["Yvan Kemajou"]["position"]), (19, "DE"))  # not #99 (Keanu Williams wears 99)
+        self.assertEqual((k["Xxavier Thomas"]["jersey"], k["Xxavier Thomas"]["position"]), (12, "S"))
+        self.assertEqual((k["LaVar Arrington II"]["jersey"], k["Lyrick Samuel"]["jersey"]), (11, 11))  # a shared number, two players
+        self.assertEqual(sum(1 for c in k.values() if c["listed"] and c["jersey"] is not None and c["position"]), 15)
+        self.assertIsNone(k["Chaz Coleman"]["jersey"])
 
     def test_the_repository_records_chaz_coleman_as_transferred_with_date_and_source(self):
         import json
         rec = json.loads((ROOT / "roster_status.json").read_text())["watchClassStatus"]
         e = rec["Chaz Coleman"]
-        self.assertEqual((e["status"], e["verified"]), ("transferred", "2026-10-17"))
+        self.assertEqual((e["status"], e["verified"], e["destination"]), ("transferred", "2026-10-17", "Tennessee"))
         # each date is labelled by what it is: the official-roster check (the "verified" date) and the CFBD data snapshot
         self.assertIn("Official roster check, 2026-10-17", e["source"])
         self.assertIn("CFBD roster data snapshot, as of 2026-10-14", e["source"])
@@ -379,7 +556,7 @@ class ForecastStatus(unittest.TestCase):
         self.assertEqual(cur["Rank"].tolist(), [1, 2, 3, 4, 5])
         self.assertEqual(cur["Original rank"].tolist(), [1, 3, 4, 5, 6])
         self.assertEqual(cur[CH].tolist(), [80, 70, 65, 60, 55])  # the original chances, unchanged
-        self.assertEqual(set(cur["Status verified on"]), {"2026-10-14"})
+        self.assertEqual(set(cur["Status verified on"]), {"2026-10-17"})  # CFBD snapshot (10-14) and official roster check (10-17) agree
         gone = t[("Player", "Original rank") + BASE + ("Roster status", "Status verified on", "Status source")]
         row = gone.iloc[0]
         self.assertEqual((row["Player"], row["Original rank"], row[CH], row["Roster status"], row["Status verified on"]),
@@ -394,10 +571,12 @@ class ForecastStatus(unittest.TestCase):
         missing = un["Player"].tolist()
         self.assertEqual(len(missing), 10)
         why = dict(zip(un["Player"], un["Why not scored"]))
-        self.assertTrue(why["Malachi Goodman"].startswith("Offensive line"))
-        self.assertTrue(why["Matthew Parker"].startswith("Kicker"))
-        self.assertTrue(why["Cam Smith"].startswith("Measurable position"))
-        self.assertEqual(sum(w.startswith("Measurable position") for w in why.values()), 7)
+        self.assertEqual(why["Malachi Goodman"], "Not forecastable with public production data: offensive line.")
+        self.assertTrue(why["Matthew Parker"].endswith("specialist (kicker, punter or snapper)."))
+        self.assertEqual([n for n, w in why.items() if w == data_check.NO_RECORDED_PRODUCTION],
+                         ["LaVar Arrington II", "Dayshaun Burnett", "Brian Kortovich", "Lyrick Samuel", "Cam Smith", "Xxavier Thomas"])
+        self.assertTrue(why["Joshua Johnson"].startswith("Recorded first-season production"))  # the only current producer not on the list
+        self.assertFalse(any("has the forecast's inputs" in w or "Measurable position" in w for w in why.values()))
         self.assertIn("LaVar Arrington II", missing)
         self.assertNotIn("Chaz Coleman", missing)
         self.assertIn("no chance is computed for them here", texts(at))

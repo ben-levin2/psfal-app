@@ -7,6 +7,7 @@
    "name": "Hunter Albright",
    "position": "OL",
    "group": "OL",
+   "jersey": 76,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -15,6 +16,7 @@
    "name": "Cooper Alexander",
    "position": "TE",
    "group": "TE",
+   "jersey": 80,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -23,6 +25,7 @@
    "name": "Owen Aliciene",
    "position": "OL",
    "group": "OL",
+   "jersey": 77,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -31,6 +34,7 @@
    "name": "Liam Andrews",
    "position": "DT",
    "group": "DL",
+   "jersey": 90,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -39,6 +43,7 @@
    "name": "Tyler Armstead",
    "position": "CB",
    "group": "DB",
+   "jersey": 35,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -47,6 +52,7 @@
    "name": "LaVar Arrington II",
    "position": "DE",
    "group": "DL",
+   "jersey": 11,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -55,6 +61,7 @@
    "name": "Christian Askew",
    "position": "S",
    "group": "DB",
+   "jersey": 30,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -63,6 +70,7 @@
    "name": "Caleb Bacon",
    "position": "LB",
    "group": "LB",
+   "jersey": 10,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -71,6 +79,7 @@
    "name": "Mason Bandhauer",
    "position": "OL",
    "group": "OL",
+   "jersey": 56,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -79,6 +88,7 @@
    "name": "Josh Banks",
    "position": "LB",
    "group": "LB",
+   "jersey": 45,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -87,6 +97,7 @@
    "name": "Ryan Barker",
    "position": "PK",
    "group": "ST",
+   "jersey": 94,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -95,6 +106,7 @@
    "name": "Connor Barry",
    "position": "QB",
    "group": "QB",
+   "jersey": 10,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -103,6 +115,7 @@
    "name": "Rocco Becht",
    "position": "QB",
    "group": "QB",
+   "jersey": 3,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -111,6 +124,7 @@
    "name": "Ethan Black",
    "position": "WR",
    "group": "WR",
+   "jersey": 82,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -119,6 +133,7 @@
    "name": "Ty Blanding",
    "position": "DT",
    "group": "DL",
+   "jersey": 39,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -127,6 +142,7 @@
    "name": "Henry Boehme",
    "position": "OL",
    "group": "OL",
+   "jersey": 67,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -135,6 +151,7 @@
    "name": "Benjamin Brahmer",
    "position": "TE",
    "group": "TE",
+   "jersey": 18,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -143,6 +160,7 @@
    "name": "Caleb Brewer",
    "position": "DT",
    "group": "DL",
+   "jersey": 73,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -151,6 +169,7 @@
    "name": "Cael Brezina",
    "position": "LB",
    "group": "LB",
+   "jersey": 9,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -159,6 +178,7 @@
    "name": "Karon Brookins",
    "position": "WR",
    "group": "WR",
+   "jersey": 8,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -167,6 +187,7 @@
    "name": "Trevor Buhr",
    "position": "OL",
    "group": "OL",
+   "jersey": 70,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -175,6 +196,7 @@
    "name": "Gabe Burkle",
    "position": "TE",
    "group": "TE",
+   "jersey": 84,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -183,6 +205,7 @@
    "name": "Dayshaun Burnett",
    "position": "DE",
    "group": "DL",
+   "jersey": 43,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -191,6 +214,7 @@
    "name": "Alijah Carnell",
    "position": "DT",
    "group": "DL",
+   "jersey": 56,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -199,6 +223,7 @@
    "name": "Tyrell Chatman",
    "position": "CB",
    "group": "DB",
+   "jersey": 20,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -207,6 +232,7 @@
    "name": "Audavion Collins",
    "position": "CB",
    "group": "DB",
+   "jersey": 2,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -215,6 +241,7 @@
    "name": "De'Andre Cook",
    "position": "DT",
    "group": "DL",
+   "jersey": 94,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -223,6 +250,7 @@
    "name": "Jeremiah Cooper",
    "position": "S",
    "group": "DB",
+   "jersey": 4,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -231,6 +259,7 @@
    "name": "Cooper Cousins",
    "position": "OL",
    "group": "OL",
+   "jersey": 50,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -239,6 +268,7 @@
    "name": "Logan Cunningham",
    "position": "WR",
    "group": "WR",
+   "jersey": 31,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -247,6 +277,7 @@
    "name": "Omarion Davis",
    "position": "S",
    "group": "DB",
+   "jersey": 27,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -255,6 +286,7 @@
    "name": "Daryus Dixson",
    "position": "CB",
    "group": "DB",
+   "jersey": 5,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -263,6 +295,7 @@
    "name": "Anthony Donkoh",
    "position": "OL",
    "group": "OL",
+   "jersey": 68,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -271,6 +304,7 @@
    "name": "Andrew Dufault",
    "position": "LS",
    "group": "ST",
+   "jersey": 92,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -279,6 +313,7 @@
    "name": "Kooper Ebel",
    "position": "LB",
    "group": "LB",
+   "jersey": 8,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -287,6 +322,7 @@
    "name": "Pete Eglitis",
    "position": "OL",
    "group": "OL",
+   "jersey": 75,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -295,6 +331,7 @@
    "name": "Brett Eskildsen",
    "position": "WR",
    "group": "WR",
+   "jersey": 4,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -303,6 +340,7 @@
    "name": "Kase Evans",
    "position": "QB",
    "group": "QB",
+   "jersey": 12,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -311,6 +349,7 @@
    "name": "Ikenna Ezeogu",
    "position": "DE",
    "group": "DL",
+   "jersey": 1,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -319,6 +358,7 @@
    "name": "Peyton Falzone",
    "position": "QB",
    "group": "QB",
+   "jersey": 14,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -327,6 +367,7 @@
    "name": "Chris Fileppo",
    "position": "LB",
    "group": "LB",
+   "jersey": 34,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -335,6 +376,7 @@
    "name": "Jim Fitzgerald",
    "position": "OL",
    "group": "OL",
+   "jersey": 65,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -343,6 +385,7 @@
    "name": "Jackson Ford",
    "position": "DE",
    "group": "DL",
+   "jersey": 89,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -351,6 +394,7 @@
    "name": "Finn Furmanek",
    "position": "TE",
    "group": "TE",
+   "jersey": 89,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -359,6 +403,7 @@
    "name": "Amar'e Glover",
    "position": "RB",
    "group": "RB",
+   "jersey": 36,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -367,6 +412,7 @@
    "name": "Peter Gonzalez",
    "position": "WR",
    "group": "WR",
+   "jersey": 7,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -375,6 +421,7 @@
    "name": "Malachi Goodman",
    "position": "OL",
    "group": "OL",
+   "jersey": 78,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -383,6 +430,7 @@
    "name": "Max Granville",
    "position": "DE",
    "group": "DL",
+   "jersey": 18,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -391,6 +439,7 @@
    "name": "Carson Hansen",
    "position": "RB",
    "group": "RB",
+   "jersey": 21,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -399,6 +448,7 @@
    "name": "Donnie Harbour",
    "position": "OL",
    "group": "OL",
+   "jersey": 79,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -407,6 +457,7 @@
    "name": "Max Heffner",
    "position": "CB",
    "group": "DB",
+   "jersey": 37,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -415,6 +466,7 @@
    "name": "Liam Horan",
    "position": "OL",
    "group": "OL",
+   "jersey": 61,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -423,6 +475,7 @@
    "name": "Koby Howard",
    "position": "WR",
    "group": "WR",
+   "jersey": 6,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -431,6 +484,7 @@
    "name": "Tyshon Huff",
    "position": "OL",
    "group": "OL",
+   "jersey": 72,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -439,6 +493,7 @@
    "name": "Vaea Ikakoula",
    "position": "OL",
    "group": "OL",
+   "jersey": 54,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -447,6 +502,7 @@
    "name": "Amarion Jackson",
    "position": "WR",
    "group": "WR",
+   "jersey": 19,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -455,6 +511,7 @@
    "name": "Joshua Johnson",
    "position": "CB",
    "group": "DB",
+   "jersey": 15,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -463,6 +520,7 @@
    "name": "Keith Jones Jr.",
    "position": "WR",
    "group": "WR",
+   "jersey": 15,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -471,6 +529,7 @@
    "name": "Jahmir Joseph",
    "position": "CB",
    "group": "DB",
+   "jersey": 23,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -479,6 +538,7 @@
    "name": "Keian Kaiser",
    "position": "LB",
    "group": "LB",
+   "jersey": 40,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -487,6 +547,7 @@
    "name": "Yvan Kemajou",
    "position": "DE",
    "group": "DL",
+   "jersey": 19,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -495,6 +556,7 @@
    "name": "John Klosterman",
    "position": "LB",
    "group": "LB",
+   "jersey": 32,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -503,6 +565,7 @@
    "name": "Brian Kortovich",
    "position": "TE",
    "group": "TE",
+   "jersey": 83,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -511,6 +574,7 @@
    "name": "Kuol Kuol II",
    "position": "OL",
    "group": "OL",
+   "jersey": 74,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -519,6 +583,7 @@
    "name": "Jake LaVerde",
    "position": "S",
    "group": "DB",
+   "jersey": 41,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -527,6 +592,7 @@
    "name": "Jack Lambert",
    "position": "QB",
    "group": "QB",
+   "jersey": 19,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -535,6 +601,7 @@
    "name": "Jake Lukac",
    "position": "LB",
    "group": "LB",
+   "jersey": 40,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -543,6 +610,7 @@
    "name": "Hank Lustig",
    "position": "WR",
    "group": "WR",
+   "jersey": 13,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -551,6 +619,7 @@
    "name": "Alex Manske",
    "position": "QB",
    "group": "QB",
+   "jersey": 7,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -559,6 +628,7 @@
    "name": "Quinton Martin Jr.",
    "position": "RB",
    "group": "RB",
+   "jersey": 25,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -567,6 +637,7 @@
    "name": "Ibn McDaniels",
    "position": "S",
    "group": "DB",
+   "jersey": 24,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -575,6 +646,7 @@
    "name": "Alexander McPherson",
    "position": "DE",
    "group": "DL",
+   "jersey": 33,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -583,6 +655,7 @@
    "name": "Bobby Mears",
    "position": "DE",
    "group": "DL",
+   "jersey": 93,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -591,6 +664,7 @@
    "name": "Donte Nastasi",
    "position": "CB",
    "group": "DB",
+   "jersey": 16,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -599,6 +673,7 @@
    "name": "Marcus Neal Jr.",
    "position": "S",
    "group": "DB",
+   "jersey": 31,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -607,6 +682,7 @@
    "name": "Armstrong Nnodim",
    "position": "DT",
    "group": "DL",
+   "jersey": 91,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -615,6 +691,7 @@
    "name": "Chimdy Onoh",
    "position": "OL",
    "group": "OL",
+   "jersey": 55,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -623,6 +700,7 @@
    "name": "Matthew Parker",
    "position": "PK",
    "group": "ST",
+   "jersey": 98,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -631,6 +709,7 @@
    "name": "Jamison Patton",
    "position": "S",
    "group": "DB",
+   "jersey": 3,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -639,6 +718,7 @@
    "name": "James Peoples",
    "position": "RB",
    "group": "RB",
+   "jersey": 1,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -647,6 +727,7 @@
    "name": "Aidan Probst",
    "position": "DE",
    "group": "DL",
+   "jersey": 47,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -655,6 +736,7 @@
    "name": "Andrew Rappleyea",
    "position": "TE",
    "group": "TE",
+   "jersey": 87,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -663,6 +745,7 @@
    "name": "Elijah Reeder",
    "position": "DL",
    "group": "DL",
+   "jersey": 88,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -671,6 +754,7 @@
    "name": "Brock Riker",
    "position": "OL",
    "group": "OL",
+   "jersey": 51,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -679,6 +763,7 @@
    "name": "Mason Robinson",
    "position": "DE",
    "group": "DL",
+   "jersey": 42,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -687,6 +772,7 @@
    "name": "Zay Robinson",
    "position": "WR",
    "group": "WR",
+   "jersey": 2,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -695,6 +781,7 @@
    "name": "Tony Rojas",
    "position": "LB",
    "group": "LB",
+   "jersey": 13,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -703,6 +790,7 @@
    "name": "Cristiano Rosa",
    "position": "PK",
    "group": "ST",
+   "jersey": 95,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -711,6 +799,7 @@
    "name": "Dominic Rulli",
    "position": "OL",
    "group": "OL",
+   "jersey": 52,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -719,6 +808,7 @@
    "name": "Lyrick Samuel",
    "position": "WR",
    "group": "WR",
+   "jersey": 11,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -727,6 +817,7 @@
    "name": "Garrett Sexton",
    "position": "OL",
    "group": "OL",
+   "jersey": 71,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -735,6 +826,7 @@
    "name": "D'Antae Sheffey",
    "position": "RB",
    "group": "RB",
+   "jersey": 29,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -743,6 +835,7 @@
    "name": "Cam Smith",
    "position": "LB",
    "group": "LB",
+   "jersey": 26,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -751,6 +844,7 @@
    "name": "Blaise Sokach-Minnick",
    "position": "LS",
    "group": "ST",
+   "jersey": 35,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -759,6 +853,7 @@
    "name": "Chase Sowell",
    "position": "WR",
    "group": "WR",
+   "jersey": 0,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -767,6 +862,7 @@
    "name": "Hunter Sowell",
    "position": "CB",
    "group": "DB",
+   "jersey": 29,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -775,6 +871,7 @@
    "name": "Alex Tatsch",
    "position": "LB",
    "group": "LB",
+   "jersey": 25,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -783,6 +880,7 @@
    "name": "Siale Taupaki",
    "position": "DT",
    "group": "DL",
+   "jersey": 92,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -791,6 +889,7 @@
    "name": "Lucas Tenbrock",
    "position": "P",
    "group": "ST",
+   "jersey": 96,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -799,6 +898,7 @@
    "name": "Xxavier Thomas",
    "position": "CB",
    "group": "DB",
+   "jersey": 12,
    "recruit_class": 2025,
    "recruit_type": "HighSchool"
   },
@@ -807,6 +907,7 @@
    "name": "Nathan Tiyce",
    "position": "P",
    "group": "ST",
+   "jersey": 38,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -815,6 +916,7 @@
    "name": "Will Tompkins",
    "position": "OL",
    "group": "OL",
+   "jersey": 66,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -823,6 +925,7 @@
    "name": "Vaboue Toure",
    "position": "S",
    "group": "DB",
+   "jersey": 21,
    "recruit_class": 2024,
    "recruit_type": "HighSchool"
   },
@@ -831,6 +934,7 @@
    "name": "Zion Tracy",
    "position": "CB",
    "group": "DB",
+   "jersey": 7,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -839,6 +943,7 @@
    "name": "Dallas Vakalahi",
    "position": "DT",
    "group": "DL",
+   "jersey": 98,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -847,6 +952,7 @@
    "name": "Cam Wallace",
    "position": "RB",
    "group": "RB",
+   "jersey": 26,
    "recruit_class": 2023,
    "recruit_type": "HighSchool"
   },
@@ -855,6 +961,7 @@
    "name": "Jeremy Washington",
    "position": "RB",
    "group": "RB",
+   "jersey": 37,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -863,6 +970,7 @@
    "name": "Ben Whitver",
    "position": "WR",
    "group": "WR",
+   "jersey": 81,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -871,6 +979,7 @@
    "name": "Bryson Williams",
    "position": "S",
    "group": "DB",
+   "jersey": 28,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   },
@@ -879,6 +988,7 @@
    "name": "Keanu Williams",
    "position": "DT",
    "group": "DL",
+   "jersey": 99,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -887,6 +997,7 @@
    "name": "Evan Wolff",
    "position": "LB",
    "group": "LB",
+   "jersey": 46,
    "recruit_class": null,
    "recruit_type": null
   },
@@ -895,6 +1006,7 @@
    "name": "Josiah Zayas",
    "position": "CB",
    "group": "DB",
+   "jersey": 17,
    "recruit_class": 2026,
    "recruit_type": "HighSchool"
   }

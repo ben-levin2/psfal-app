@@ -26,7 +26,7 @@ def make_app(tmp, with_report=True, report_text=None, app_src=None, data=None, w
     (tmp / "streamlit_app.py").write_text(app_src if app_src is not None else (ROOT / "streamlit_app.py").read_text())
     shutil.copy(ROOT / "ui.py", tmp / "ui.py")
     shutil.copy(ROOT / "data_check.py", tmp / "data_check.py")
-    for extra in ("models.py", "findings.py", "roster_status.json", "roster_snapshot.json", "development_by_star.json"):  # added since the improvement sprint
+    for extra in ("models.py", "findings.py", "roster_status.json", "roster_snapshot.json", "forecast_class.json", "development_by_star.json"):  # added since the improvement sprint
         if (ROOT / extra).exists() and extra not in without:
             shutil.copy(ROOT / extra, tmp / extra)
     (tmp / "dashboard_data.json").write_text(json.dumps(data if data is not None else fixture()))

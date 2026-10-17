@@ -46,16 +46,65 @@ All are 2025-class high-school recruits on the 2026 roster (CFBD roster data, as
 | Malachi Goodman | OL | OL | 0.9702 | none (no measure) | Same |
 | Matthew Parker | PK | ST | 0.7900 | kicking only | Not covered by the production measure |
 | Joshua Johnson | CB | DB | 0.8733 | 1 tackle | Has every input; model unavailable |
-| LaVar Arrington II | DE | DL | 0.9028 | no stat row | Inputs present only if no stat row counts as zero production; model unavailable |
+| LaVar Arrington II | DE | DL | 0.9028 | no stat row | No recorded first-season production — unknown; eligibility/scoring treatment pending |
 | Dayshaun Burnett | DE | DL | 0.9000 | no stat row | Same |
 | Cam Smith | LB | LB | 0.8983 | no stat row | Same |
 | Lyrick Samuel | WR | WR | 0.8948 | no stat row | Same |
 | Brian Kortovich | TE | TE | 0.8868 | no stat row | Same |
-| Xxavier Thomas | CB | DB | 0.8814 | no stat row | Same |
+| Xxavier Thomas | CB (official: S) | DB | 0.8814 | no stat row | Same |
 
-**Could be scored by a recovered or rebuilt model: 7** (one with recorded production, six whose first-year production is zero by the
-pipeline's convention; whether a redshirt or injury year should count as zero must be decided before scoring). **Ineligible under any
-production-based model: 3** (two offensive linemen, one kicker).
+**Eligible under the Step 2 rules: 7** (one with recorded production; six whose first-season production is **unknown**, not zero: a missing
+stat row cannot tell a redshirt, an injury, no snaps or a data gap apart, and how to treat it is undecided). **Not forecastable with public
+production data: 3** (two offensive linemen, one kicker). Eligibility is not scoring: no chance exists for any of the ten.
+
+## 4a. Step 2 rules: missing data, eligibility and roster status (implemented in `data_check.py`, 2026-10-17)
+
+Facts come from `forecast_class.json` (built by `tools/build_forecast_class.py` from the player-season table, CFBD data as of 2026-10-14,
+plus the official-roster check recorded in `tools/official_roster_check_2026-10-17.json`). The rules decide nothing about probabilities:
+they are used for audit counts, explanations and which group a forecast is listed under.
+
+**R4. First-season production state** (`production_state`): `recorded_positive` (a stat row with the primary stat above zero);
+`recorded_zero` (a stat row whose primary stat is zero, negative or absent, because CFBD lists only the categories a player recorded);
+`no_stat_row` (unknown, never zero, never "did not play"); `not_measurable` (OL, ST, ATH, OTHER). 2025 class: **8 / 16 / 5**
+(recorded / no stat row / not measurable), 0 recorded zeros. The pipeline's `production_table` fills a missing row with zero and ranks it
+(10th to 50th percentile by group and season, 2016–2025); that behaviour is documented, not changed.
+
+**R1–R3, R5, R7. Eligibility** (`eligibility`, returns a decision and a reason): high-school recruit of the class; identity by athlete id
+or recruit id (a name-only link goes to review); position group QB, RB, WR, TE, DL, LB or DB, mapped as the pipeline maps positions
+(DE → DL, CB and S → DB, K → ST); a recruiting rating; on the roster in the class year; arrival not uncertain. A position group that differs
+between CFBD and the official roster goes to review. 2025 class: **24 eligible, 5 ineligible (4 OL, 1 K), 0 review**. Unknown production is
+reported separately and does not make a player ineligible.
+
+**R6. Roster status** (`player_status`), separate from eligibility and from the forecast's outcome:
+
+| Status | Evidence required |
+|---|---|
+| `current` | On every dated roster source checked (CFBD roster snapshot; official roster check) |
+| `not_on_roster_snapshot_unconfirmed` | Absent from one dated roster source only. Absence alone is never a departure |
+| `departed` | Absent from two independent dated roster sources, or an explicit dated record |
+| `transferred` | An explicit dated portal or news record that names the destination |
+| `unknown` | Ambiguous identity, roster sources that disagree, or a record saying so |
+
+Identity: the forecast list has names only, so a name is linked to exactly one class-record player, whose athlete id is then used on the
+roster snapshot (ids before names). Jersey numbers and positions on the official roster are secondary checks: a difference is reported for
+review and never changes a status, and a number is never used to match (numbers are shared, e.g. #11 and #19).
+
+**The six displayed forecasts (statuses as of 2026-10-17).** Historical record: all six keep their original probability and rank.
+Current display: Kemajou, Dixson, Tatsch, Joseph and Howard are `current` (CFBD snapshot 2026-10-14 and official roster 2026-10-17 agree);
+Coleman is `transferred` (record with destination Tennessee) and is shown only as a historical prediction. A transfer or departure is not a
+failed prediction: the outcome cannot be observed at Penn State. Joseph's jersey differs between sources (CFBD #23, official #0): flagged
+for review, status unchanged.
+
+**Depends on recovering the original model (Step 1, not reproduced).** Whether the original treated a missing stat row as zero; its
+percentile tie method; whether positions or players were excluded before scoring; how leavers were counted; the rule that selected six.
+Any of these could change which of the 24 eligible players the original model could legitimately score.
+
+**Unresolved, for human review.** Why Joshua Johnson and Tikey Hayes (both with recorded production) are not on the list; what the six
+current players without a stat row did in 2025 (needs participation data); why 13 absent players left (portal table on Drive);
+Joseph's jersey; whether OL and K stay out; how Coleman's and Hayes's outcomes are treated in evaluation (Step 4).
+
+**Performance evidence is separate from eligibility.** Snap counts and grades are not in PSFAL's data (licensed sources); CFBD season stats
+exist for players who recorded stats, and usage shares only for offensive players. Evidence availability never makes a player eligible.
 
 ## 5. Rebuild and validation plan (if the original model cannot be recovered)
 

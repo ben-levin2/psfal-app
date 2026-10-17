@@ -1,0 +1,24 @@
+{
+  "about": "Record of an official-roster check, used by tools/build_forecast_class.py as a second, independent roster source. Scope: the 29 high-school recruits of the 2025 class only; other players were not checked. Jersey and position are as shown on the page and are secondary identity evidence only: a jersey is not an id (numbers are shared, e.g. #11 and #19) and never establishes roster status by itself.",
+  "source": "Official Penn State 2026 football roster, gopsusports.com/sports/football/roster (players #0 to #99, followed by the coaching staff)",
+  "date": "2026-10-17",
+  "season": 2026,
+  "scope": "2025 recruiting class (29 high-school recruits)",
+  "listed": [
+    {"name": "Owen Aliciene", "jersey": 77, "position": "OL"},
+    {"name": "LaVar Arrington II", "jersey": 11, "position": "DE"},
+    {"name": "Dayshaun Burnett", "jersey": 43, "position": "DE"},
+    {"name": "Daryus Dixson", "jersey": 5, "position": "CB"},
+    {"name": "Malachi Goodman", "jersey": 78, "position": "OL"},
+    {"name": "Koby Howard", "jersey": 6, "position": "WR"},
+    {"name": "Joshua Johnson", "jersey": 15, "position": "CB"},
+    {"name": "Jahmir Joseph", "jersey": 0, "position": "CB"},
+    {"name": "Yvan Kemajou", "jersey": 19, "position": "DE"},
+    {"name": "Brian Kortovich", "jersey": 83, "position": "TE"},
+    {"name": "Matthew Parker", "jersey": 98, "position": "K"},
+    {"name": "Lyrick Samuel", "jersey": 11, "position": "WR"},
+    {"name": "Cam Smith", "jersey": 26, "position": "LB"},
+    {"name": "Alex Tatsch", "jersey": 25, "position": "LB"},
+    {"name": "Xxavier Thomas", "jersey": 12, "position": "S"}
+  ]
+}

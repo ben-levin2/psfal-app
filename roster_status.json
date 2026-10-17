@@ -1,9 +1,10 @@
 {
-  "about": "Verified roster status of players in the Recruit Development Forecast (2025 class), kept under version control because the dashboard data file is hand-maintained in the deployment settings. Same format as the data file's watchClassStatus; the later verification date wins. A status never changes a forecast: it only moves the original prediction to the matching group. Add an entry only with a verification date and a source. \"verified\" is the date of the latest check named in the source; the source labels each date by what it is (an official-roster check or a data-snapshot date).",
+  "about": "Verified roster status of players in the Recruit Development Forecast (2025 class), kept under version control because the dashboard data file is hand-maintained in the deployment settings. Same format as the data file's watchClassStatus; the later verification date wins. A status never changes a forecast: it only moves the original prediction to the matching group. Add an entry only with a verification date and a source. \"verified\" is the date of the latest check named in the source; the source labels each date by what it is (an official-roster check or a data-snapshot date). \"transferred\" also needs \"destination\", supported by the cited portal or news record.",
   "watchClassStatus": {
     "Chaz Coleman": {
       "status": "transferred",
       "verified": "2026-10-17",
+      "destination": "Tennessee",
       "source": "Official roster check, 2026-10-17: not listed on Penn State's 2026 football roster (gopsusports.com/sports/football/roster, players #0 to #99). CFBD roster data snapshot, as of 2026-10-14: not on the 2026 roster. Transfer: left Penn State through the transfer portal for Tennessee (247Sports; CBS Sports)."
     }
   }

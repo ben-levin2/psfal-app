@@ -185,7 +185,18 @@ def section_freshness(D, section):
             "last_refresh": last_successful_refresh(D)}
 
 
-PLAYER_STATUSES = ("current", "transferred", "departed", "unknown")
+# Roster statuses (Step 2, rule R6). A status is about roster membership only: it never changes a probability, an original rank or a
+# forecast's outcome, and a transfer or departure is not a failed prediction (the outcome cannot be observed at Penn State).
+#   current                               on a dated current-season roster source (and on every other dated source checked)
+#   not_on_roster_snapshot_unconfirmed    absent from ONE dated roster source; absence alone is never a departure
+#   departed                              absent from two independent dated roster sources, or an explicit dated record
+#   transferred                           an explicit dated portal or news record that names the destination
+#   unknown                               ambiguous identity, roster sources that disagree, or a record marked unknown
+#   not verified                          no source at all
+PLAYER_STATUSES = ("current", "transferred", "departed", "unknown")  # statuses an explicit record may state
+ROSTER_STATUSES = ("current", "not_on_roster_snapshot_unconfirmed", "departed", "transferred", "unknown")
+STATUS_LABEL = {"current": "current", "not_on_roster_snapshot_unconfirmed": "not on roster snapshot (unconfirmed)", "departed": "departed",
+                "transferred": "transferred", "unknown": "unknown", "not verified": "not verified"}
 
 
 _SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
@@ -223,18 +234,44 @@ def roster_snapshot(obj, season, today):
     return {**obj, "as_of": as_of.isoformat(), "players": players}, None
 
 
-def player_status(D, recorded=None, roster=None):
-    """Roster status of each player in the 2025-class forecast list. Sources, each giving a status with a verification date:
-      1. the data file's optional "watchClassStatus": {"Player Name": {"status": "current" | "transferred" | "departed" | "unknown",
-         "verified": "YYYY-MM-DD", "source": "..."}}
-      2. `recorded`: the same mapping from roster_status.json in this repository (dated records such as a confirmed transfer)
-      3. `roster`: a roster snapshot validated by roster_snapshot(). On it: current (verified on its as_of date); not on it: departed;
-         two roster players with the same name: unknown, flagged.
-    The latest verification date wins; on a tie the earlier source in this list wins. Names are matched with name_key(). Names in
-    roster_status.json that are not in this forecast list are skipped silently, because the list in the data file may differ.
-    Returns ({player: {"status", "verified", "source"}}, problems). A player with no valid entry from any source is "not verified". An entry
-    needs a known status AND a valid date to count. Nothing is inferred beyond the roster itself, and the forecast is never changed: a status
-    only decides which group the original prediction is listed under."""
+def forecast_class(obj, recruit_class):
+    """A validated forecast-class record (forecast_class.json: every high-school recruit of the class with identity, rating, first-season
+    and roster-check facts), or (None, problem). Repeated athlete ids or another class make it unusable."""
+    if obj is None:
+        return None, None
+    if not isinstance(obj, dict) or not isinstance(obj.get("players"), list) or obj.get("recruit_class") != recruit_class:
+        return None, f"The forecast-class record is not a valid record of the {recruit_class} class; it was not used."
+    ids = [p.get("id") for p in obj["players"] if isinstance(p, dict)]
+    if len(ids) != len(obj["players"]) or None in ids or len(set(ids)) != len(ids):
+        return None, "The forecast-class record has players without ids or repeated ids; it was not used."
+    return obj, None
+
+
+def identity_note(snapshot_player, check):
+    """Secondary identity check of one player found on both roster sources (matched by athlete id, never by jersey): a jersey or position
+    group that differs is reported for human review. It never changes a status: numbers change and are shared (#11, #19)."""
+    out = []
+    a, b = snapshot_player.get("jersey"), check.get("jersey")
+    if a is not None and b is not None and a != b:
+        out.append(f"jersey differs (CFBD roster #{a}, official roster #{b})")
+    ga, gb = position_group(snapshot_player.get("position")), position_group(check.get("position"))
+    if check.get("position") and snapshot_player.get("position") and ga != gb:
+        out.append(f"position group differs (CFBD {snapshot_player.get('position')} = {ga}, official {check.get('position')} = {gb})")
+    return ("; ".join(out) + ". Secondary identity check only; needs human review. Status unchanged.") if out else None
+
+
+def player_status(D, recorded=None, roster=None, klass=None):
+    """Roster status of each player in the forecast list (see ROSTER_STATUSES). Evidence, each item dated:
+      1. explicit records: the data file's optional "watchClassStatus", then `recorded` (roster_status.json), both
+         {"Player Name": {"status": one of PLAYER_STATUSES, "verified": "YYYY-MM-DD", "source": "...", "destination": "..."}};
+         "transferred" counts only with a destination;
+      2. roster evidence: `roster` (a snapshot validated by roster_snapshot()) and, from `klass` (forecast_class()), each player's
+         independent official-roster check. On every source: current. Absent from one: not_on_roster_snapshot_unconfirmed. Absent from two
+         independent sources: departed. Sources that disagree: unknown.
+    The latest date wins; on a tie the earlier item in this list wins. Identity: a forecast name is linked to ONE player of the class record
+    by name_key(), then that player's athlete id is used to find him on the roster snapshot (ids before names). Two class players with one
+    name, a near match on the roster ('Josh' for 'Joshua'), or a duplicate forecast entry give unknown, for review; nothing is guessed.
+    Returns ({player: {"status", "verified", "source"}}, problems). A player with no evidence is "not verified"."""
     players = [r[0] for r in D.get("watchClass") or [] if isinstance(r, (list, tuple)) and r]
     out = {p: {"status": "not verified", "verified": None, "source": None} for p in players}
     problems = []
@@ -248,7 +285,7 @@ def player_status(D, recorded=None, roster=None):
 
     def put(name, status, verified, source):
         if out[name]["verified"] is not None and out[name]["verified"] >= verified:
-            return  # an equal or later check is already recorded
+            return  # an equal or later piece of evidence is already recorded
         out[name] = {"status": status, "verified": verified, "source": source}
 
     for raw, where, strict in ((D.get("watchClassStatus"), "watchClassStatus", True), (recorded, "roster_status.json", False)):
@@ -271,27 +308,62 @@ def player_status(D, recorded=None, roster=None):
             except ValueError:
                 problems.append(f"{where}[{name!r}].verified should be a date (YYYY-MM-DD); shown as not verified.")
                 continue
-            put(match[0], e["status"], verified, e.get("source") if isinstance(e.get("source"), str) and e.get("source").strip() else None)
-    if roster is not None:
-        on = {}
-        for r in roster["players"]:
-            on.setdefault(name_key(r["name"]), []).append(r)
-        label = f"the {roster['season']} roster snapshot (as of {roster['as_of']}; {(roster.get('provenance') or {}).get('source', 'source not recorded')})"
-        for k, names in by_key.items():
-            if len(names) != 1:
+            if e["status"] == "transferred" and not (isinstance(e.get("destination"), str) and e["destination"].strip()):
+                problems.append(f"{where}[{name!r}] says transferred but names no destination; ignored.")
                 continue
-            hits = on.get(k, [])
-            # not found by name, but a roster player has the same last name and first initial ('Josh' for 'Joshua'): never call that a departure
-            near = [r["name"] for key, rs in on.items() for r in rs
-                    if not hits and key.split()[-1:] == k.split()[-1:] and key[:1] == k[:1]]
-            if len(hits) == 1:
-                put(names[0], "current", roster["as_of"], f"On {label}.")
-            elif near:
-                put(names[0], "unknown", roster["as_of"], f"Not on {label} under this name; possible match: {', '.join(near)}. Not resolved.")
-            elif not hits:
-                put(names[0], "departed", roster["as_of"], f"Not on {label}.")
+            put(match[0], e["status"], verified, e.get("source") if isinstance(e.get("source"), str) and e.get("source").strip() else None)
+
+    cls = {}
+    for c in (klass or {}).get("players", []):
+        cls.setdefault(name_key(c.get("name", "")), []).append(c)
+    on_name, on_id = {}, {}
+    for r in (roster or {}).get("players", []):
+        on_name.setdefault(name_key(r["name"]), []).append(r)
+        if r.get("id") is not None:
+            on_id[str(r["id"])] = r
+    snap = (f"the {roster['season']} CFBD roster snapshot (as of {roster['as_of']})" if roster else None)
+    for k, names in by_key.items():
+        if len(names) != 1:
+            continue
+        name = names[0]
+        ids = cls.get(k, [])
+        if len(ids) > 1:
+            put(name, "unknown", max([roster["as_of"]] if roster else ["0000-01-01"]),
+                f"{len(ids)} players of the class record share this name; identity needs review.")
+            continue
+        player = ids[0] if ids else None
+        evidence = []  # (date, on roster?, description)
+        if roster:
+            if player is not None:
+                listed = str(player["id"]) in on_id  # the athlete id decides; the name is not used
             else:
-                put(names[0], "unknown", roster["as_of"], f"{len(hits)} players on {label} share this name; not resolved.")
+                hits = on_name.get(k, [])
+                near = [r["name"] for key, rs in on_name.items() for r in rs
+                        if not hits and key.split()[-1:] == k.split()[-1:] and key[:1] == k[:1]]
+                if near or len(hits) > 1:
+                    why = f"possible match: {', '.join(near)}" if near else f"{len(hits)} roster players share this name"
+                    put(name, "unknown", roster["as_of"], f"Not matched on {snap}: {why}. Identity needs review.")
+                    continue
+                listed = len(hits) == 1
+            evidence.append((roster["as_of"], listed, f"{'On' if listed else 'Not on'} {snap}"))
+        chk = (player or {}).get("official_roster_check")
+        if roster and player is not None and isinstance(chk, dict) and chk.get("listed") and str(player["id"]) in on_id:
+            note = identity_note(on_id[str(player["id"])], chk)
+            if note:
+                problems.append(f"{name}: {note}")
+        if isinstance(chk, dict) and chk.get("date"):
+            evidence.append((chk["date"], bool(chk.get("listed")), f"{'Listed' if chk.get('listed') else 'Not listed'} on the official "
+                                                                      f"{chk.get('season', '')} roster (checked {chk['date']}: {chk.get('source', 'source not recorded')})"))
+        if not evidence:
+            continue
+        latest = max(d for d, _, _ in evidence)
+        text = "; ".join(t for _, _, t in evidence) + "."
+        if all(on for _, on, _ in evidence):
+            put(name, "current", latest, text)
+        elif not any(on for _, on, _ in evidence):
+            put(name, "departed" if len(evidence) >= 2 else "not_on_roster_snapshot_unconfirmed", latest, text)
+        else:
+            put(name, "unknown", latest, text + " The sources disagree; needs review.")
     for k, names in by_key.items():
         if len(names) > 1:
             for n in names:
@@ -299,33 +371,107 @@ def player_status(D, recorded=None, roster=None):
     return out, problems
 
 
+# Roster position -> PSFAL position group, as the pipeline maps it (psfal.tables.pos_group; EDGE/SDE/WDE with DL is the pipeline's assumption).
+_POSITION_GROUP = {"QB": ["QB", "PRO", "DUAL"], "RB": ["RB", "FB", "HB", "APB"], "WR": ["WR"], "TE": ["TE"],
+                   "OL": ["OL", "OT", "OG", "OC", "C", "G", "T", "IOL"], "DL": ["DL", "DT", "DE", "NT", "EDGE", "SDE", "WDE"],
+                   "LB": ["LB", "ILB", "OLB"], "DB": ["CB", "S", "DB", "SS", "FS"], "ST": ["K", "P", "PK", "LS"], "ATH": ["ATH"]}
+
+
+def position_group(position):
+    """The PSFAL position group of a roster position ('DE' -> 'DL', 'CB' and 'S' -> 'DB', 'K' -> 'ST'); 'OTHER' if unknown."""
+    p = str(position or "").upper().strip()
+    return next((g for g, members in _POSITION_GROUP.items() if p in members), "OTHER")
+
+
 # Position groups the PSFAL production measure covers (psfal.modules.development.PRIMARY); the forecast's first-season production input
 # exists only for these.
 MEASURABLE_GROUPS = ("QB", "RB", "WR", "TE", "DL", "LB", "DB")
+# Step 2, rule R4. The four states of a player's first-season production on the PSFAL measure:
+#   recorded_positive   a CFBD season-stat row exists and the position's primary stat is above zero
+#   recorded_zero       a CFBD season-stat row exists and the primary stat is zero, negative or not among the categories it records (CFBD
+#                       lists only the categories a player recorded, so a row without the primary category is a recorded zero for it)
+#   no_stat_row         no CFBD season-stat row: UNKNOWN. It is not zero and it does not mean the player did not play (redshirt, injury,
+#                       no snaps and a data gap all look the same); the PSFAL pipeline's production_table fills it with zero, so its
+#                       percentile is not a measurement
+#   not_measurable      the position has no production measure in public data (offensive line, specialists, athletes, other)
+PRODUCTION_STATES = ("recorded_positive", "recorded_zero", "no_stat_row", "not_measurable")
 
 
-def unscored_reason(player):
-    """Why a roster player from the forecast's class has no forecast, from his position group in the roster snapshot. Never a guess about
-    the player: it states which input or requirement is missing."""
+def production_state(player):
+    """The first-season production state (PRODUCTION_STATES) of a forecast-class player record. Never converts a missing row to zero."""
+    if player.get("group") not in MEASURABLE_GROUPS:
+        return "not_measurable"
+    first = player.get("first_season")
+    if not isinstance(first, dict) or not first.get("has_stat_row"):
+        return "no_stat_row"
+    v = first.get("primary_value")
+    if v is None:
+        return "recorded_zero"
+    return "recorded_positive" if v > 0 else "recorded_zero"
+
+
+def eligibility(player, recruit_class):
+    """Step 2 eligibility (rules R1, R2, R3, R5, R7) of a forecast-class player record: {"decision": "eligible" | "ineligible" | "review",
+    "reason": "..."}. For audit counts and explanations only: it never scores a player or changes a forecast. First-season production is
+    reported separately by production_state(), because how to treat an unknown (no_stat_row) is not decided yet."""
+    def res(decision, reason):
+        return {"decision": decision, "reason": reason}
+    if player.get("recruit_class") != recruit_class or player.get("recruit_type") != "HighSchool":
+        return res("ineligible", f"Not a high-school recruit of the {recruit_class} class.")
+    method = player.get("match_method")
+    if method == "name":
+        return res("review", "Linked to the roster by name only; identity needs review.")
+    if method not in ("athlete_id", "recruit_id") or not player.get("id"):
+        return res("ineligible", "No roster identity link (athlete id or recruit id).")
     group = player.get("group")
-    if group == "OL":
-        return "Offensive line: no individual production measure in public data, so the forecast's first-season production input does not exist."
-    if group == "ST":
-        return "Kicker, punter or snapper: not covered by the production measure the forecast uses."
-    if group in MEASURABLE_GROUPS:
-        return ("Measurable position with the forecast's inputs (rating, position, first-season production), but the model that made the list "
-                "is not recorded or reproducible, so no chance can be computed.")
-    return "Position group not recorded in the roster snapshot; eligibility cannot be checked."
+    if group not in MEASURABLE_GROUPS:
+        what = {"OL": "offensive line", "ST": "specialist (kicker, punter or snapper)", "ATH": "athlete without a set position"}.get(group, "other")
+        return res("ineligible", f"Not forecastable with public production data: {what}.")
+    chk = player.get("official_roster_check")
+    if isinstance(chk, dict) and chk.get("position") and position_group(chk["position"]) != group:
+        return res("review", f"Position group differs between CFBD ({group}) and the official roster ({chk['position']} = "
+                             f"{position_group(chk['position'])}); needs review.")
+    if player.get("rating") is None:
+        return res("ineligible", "Missing recruiting rating.")
+    if not isinstance(player.get("first_season"), dict):
+        return res("ineligible", f"Not on the roster in {recruit_class}, so there is no first program season.")
+    if player.get("arrival_uncertain") or player.get("first_roster_season") != recruit_class:
+        return res("review", "First program season not confirmed by the roster; needs review.")
+    return res("eligible", "Meets the population, identity, position, rating and first-season rules.")
 
 
-def unscored_class_members(D, roster, recruit_class):
-    """Players on the roster snapshot from the forecast's recruiting class (high-school recruits) who are not in the forecast list. The list's
-    model and selection rule are not recorded, so no chance can be computed for them here; they are listed so the gap is visible."""
+NO_RECORDED_PRODUCTION = "No recorded first-season production — unknown; eligibility/scoring treatment pending."
+
+
+def unscored_reason(player, recruit_class=2025):
+    """Why a current player of the forecast's class has no forecast: the eligibility reason, or for an eligible player his production
+    state. It names the missing input or rule; it never implies that a player without a stat row has known production."""
+    e = eligibility(player, recruit_class)
+    if e["decision"] != "eligible":
+        return e["reason"] if e["decision"] == "ineligible" else f"Needs review: {e['reason']}"
+    if production_state(player) == "no_stat_row":
+        return NO_RECORDED_PRODUCTION
+    return ("Recorded first-season production; not in the original list, whose model and selection rule are not recorded, so no chance is "
+            "computed here.")
+
+
+def unscored_class_members(D, roster, recruit_class, klass=None):
+    """Current players of the forecast's class (on the roster snapshot, matched to the class record by athlete id) who are not in the
+    forecast list, as class-record player dicts. Without a class record, roster players of the class are returned as they are. No chance is
+    computed for them: the list's model and selection rule are not recorded."""
     if roster is None:
         return []
     listed = {name_key(r[0]) for r in D.get("watchClass") or [] if isinstance(r, (list, tuple)) and r}
-    return [r for r in roster["players"] if r.get("recruit_class") == recruit_class and r.get("recruit_type") in (None, "HighSchool")
-            and name_key(r["name"]) not in listed]
+    by_id = {str(c["id"]): c for c in (klass or {}).get("players", [])}
+    out = []
+    for r in roster["players"]:
+        c = by_id.get(str(r.get("id")))
+        if c is None and (klass or r.get("recruit_class") != recruit_class or r.get("recruit_type") not in (None, "HighSchool")):
+            continue
+        p = c or r
+        if name_key(p["name"]) not in listed:
+            out.append(p)
+    return out
 
 
 def star_series(traj, keys):
