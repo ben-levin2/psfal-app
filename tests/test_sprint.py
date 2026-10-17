@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "tests"))
 import data_check  # noqa: E402
 from make_fixture import fixture  # noqa: E402
-from test_child15_dashboard import make_app, open_view, run, texts  # noqa: E402  (also fixes PSFAL_TODAY for the app tests)
+from test_child15_dashboard import chart, make_app, open_view, run, texts  # noqa: E402  (also fixes PSFAL_TODAY for the app tests)
 
 TAGLINE = "What public data says about Penn State football from 2014 to 2026, with uncertainty shown."
 
@@ -425,3 +425,30 @@ class ImportantFindings(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SplitStarDevelopmentChart(unittest.TestCase):
+    def view(self, d):
+        with tempfile.TemporaryDirectory() as tmp:
+            at = open_view(run(make_app(tmp, data=d)), "Player Development", "Player Development Analytics")
+            self.assertFalse(at.exception)
+            return at
+
+    def test_four_and_five_star_lines_are_separate_when_source_has_both_series(self):
+        d = fixture()
+        d["traj"]["star4"] = [44, 56]
+        d["traj"]["star5"] = [68, 79]
+        at = self.view(d)
+        spec = chart(at, "4 stars")
+        names = [trace.get("name") for trace in spec["data"]]
+        self.assertIn("4 stars", names)
+        self.assertIn("5 stars", names)
+        self.assertNotIn("4 and 5 stars (combined; source split unavailable)", names)
+
+    def test_combined_source_is_disclosed_instead_of_fabricating_a_split(self):
+        at = self.view(fixture())
+        spec = chart(at, "4 and 5 stars (combined; source split unavailable)")
+        names = [trace.get("name") for trace in spec["data"]]
+        self.assertIn("3 stars", names)
+        self.assertIn("2 stars or fewer", names)
+        self.assertIn("The current data source combines four- and five-star recruits.", texts(at))
