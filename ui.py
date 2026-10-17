@@ -95,7 +95,7 @@ _CSS = f"""
 /* evidence labels: light chips with navy text; each kind keeps its own tint (Descriptive grey, Tested blue, Assumption amber) */
 {NAVY_ALL} .stMarkdownColoredBackground {{color: {NAVY} !important; font-weight: 600; padding: 0.1em 0.45em; border-radius: 4px;}}
 {NAVY_ALL} .stMarkdownColoredBackground[style*="49, 51, 63"] {{background-color: #E4E9F0 !important;}}
-{NAVY_ALL} .stMarkdownColoredBackground[style*="28, 131, 225"] {{background-color: {PUGH} !important;}}
+{NAVY_ALL} :is(.stMarkdownColoredBackground[style*="28, 131, 225"], .stMarkdownColoredBackground[style*="28, 131, 255"]) {{background-color: {PUGH} !important;}}  /* Streamlit 1.50 emits 28, 131, 255 for blue */
 {NAVY_ALL} .stMarkdownColoredBackground[style*="255, 164, 33"] {{background-color: #F6D7A4 !important;}}
 /* links inside cards: Pugh Blue, white and underlined on hover, a visible outline on keyboard focus */
 {NAVY_ALL} button[kind="tertiary"], {NAVY_ALL} button[kind="tertiary"] p, {NAVY_ALL} button[kind="tertiary"] [data-testid="stIconMaterial"] {{color: {PUGH} !important; font-weight: 600;}}
@@ -117,6 +117,9 @@ _CSS = f"""
 /* Streamlit wraps each cell's text in a paragraph; shown inline, a copied selection keeps one tab between cells and one line per row,
    so it pastes into a spreadsheet as rows and columns. */
 [data-testid="stTable"] :is(td, th) [data-testid="stMarkdownContainer"], [data-testid="stTable"] :is(td, th) p {{display: inline;}}
+/* Streamlit's word-break: break-word lets a narrow column split words at any letter ("Recruitin g"); the module-status tables wrap
+   between words instead */
+[class*="st-key-tbl_model_status"] [data-testid="stTable"] :is(td, th) p {{word-break: normal; overflow-wrap: normal;}}
 /* a wide table keeps its first column in view while it scrolls sideways */
 [class*="st-key-tblpin_"] td.col0, [class*="st-key-tblpin_"] th.col_heading.col0 {{position: sticky; left: 0; z-index: 1; background: {WHITE};
   box-shadow: 1px 0 0 #D6E0EE;}}

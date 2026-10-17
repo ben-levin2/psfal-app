@@ -32,7 +32,31 @@ def _table(rows):
     return pd.DataFrame(rows)
 
 
-def render(blue, gray, gold, style, grouped_dots):
+def _summary(G):
+    """One row per measure: Penn State's standardized gap to each of the three main groups, taken unchanged from the saved report."""
+    rows = []
+    for m in METRICS:
+        rows.append({"Measure": f"{m} †" if m.startswith("SP+") or m == "Win percentage" else m, "As measured": META[m][0],
+                     "vs Big Ten peers": G["peers"][m]["gap_sd"], "vs national average": G["national"][m]["gap_sd"],
+                     "vs national champions": G["champions"][m]["gap_sd"]})
+    return pd.DataFrame(rows)
+
+
+def _implications(G):
+    """Plain-English lines read straight off the summary: counts of measures ahead or behind, and the largest gaps. No new calculation."""
+    n = len(METRICS)
+    ahead = {g: sum(G[g][m]["gap_sd"] > 0 for m in METRICS) for g in ("peers", "national", "champions")}
+    worst = min(METRICS, key=lambda m: G["champions"][m]["gap_sd"])
+    best = max(METRICS, key=lambda m: G["peers"][m]["gap_sd"])
+    return [f"Penn State is ahead of season-specific Big Ten peers on **{ahead['peers']} of {n}** measures and ahead of the national average on "
+            f"**{ahead['national']} of {n}**.",
+            f"Against national champions it is ahead on **{ahead['champions']} of {n}**. The largest shortfall is **{worst}** "
+            f"({G['champions'][worst]['gap_sd']:+.2f} SD).",
+            f"Its largest lead over Big Ten peers is **{best}** ({G['peers'][best]['gap_sd']:+.2f} SD).",
+            "These describe where Penn State sits, not why, and the champion comparison rests on a handful of teams."]
+
+
+def render(blue, gray, gold, style, grouped_dots, sp_explainer=None):
     st.subheader("Big Ten competitive intelligence (Child 15)  :gray-background[Descriptive]")
     try:
         parsed, info = _load()
@@ -66,6 +90,10 @@ def render(blue, gray, gold, style, grouped_dots):
                "Read it as a profile of a handful of teams, not as a target or a prediction.")
 
     # ---- chart
+    if sp_explainer:
+        sp_explainer()
+    st.caption("SP+ values on this page come from the saved Child 15 report. When they were downloaded, and whether they are final end-of-season "
+               "ratings, are not recorded on this page and have not been verified.")
     st.markdown(f"**Penn State's gap in standard deviations, {win.replace('-', ' to ')}**")
     series = [(GROUP_LABEL[g], [G[g][m]["gap_sd"] for m in METRICS]) for g in ("peers", "national", "champions")]
     # † marks the measures the warning above calls partly circular for the champion row (SP+ and win percentage)
@@ -79,8 +107,21 @@ def render(blue, gray, gold, style, grouped_dots):
     st.caption("† Named in the warning above as partly circular for the champion comparison. The lab's general limitations also list per-play "
                "efficiency (PPA here) as a circular measure.")
 
-    # ---- table
-    st.markdown("**Full numbers**")
+    # ---- summary first; the full table, unchanged, is one click away
+    st.markdown(f"**Summary: where Penn State is ahead and behind, {win.replace('-', ' to ')}**")
+    st.markdown("\n".join(f"- {x}" for x in _implications(G)))
+    ui.table(_summary(G), "c15_summary", {c: "{:+.2f}" for c in ("vs Big Ten peers", "vs national average", "vs national champions")})
+    st.caption("Standard deviations; positive means Penn State is better, already flipped for defense. † partly circular for the champion comparison. "
+               "Raw values, the fixed 18-team sensitivity set and sample sizes are under Full numbers.")
+    expander = st.expander("Full numbers: every comparison group, raw values and sample sizes")
+    with expander:
+        _full_numbers(G, win)
+
+    # ---- methodology and limits
+    _read_and_source(parsed, info)
+
+
+def _full_numbers(G, win):
     rows = []
     for m in METRICS:
         for g in ("peers", "national", "champions", "fixed18"):
@@ -99,7 +140,8 @@ def render(blue, gray, gold, style, grouped_dots):
     st.caption("Raw gaps are in the metric's own unit and keep its direction, so a negative raw gap on a defense measure is good for Penn State. The standardized gap is already flipped. "
                "Recruiting points and talent have fewer team-seasons because they are missing for 2014 and for a few teams; zero talent values are treated as missing.")
 
-    # ---- methodology and limits
+
+def _read_and_source(parsed, info):
     with st.container(border=True, key="panel_c15_read"):
         st.markdown("**How to read this**")
         st.markdown("- **Descriptive and team-level.** It shows where Penn State sits, not why.\n"
