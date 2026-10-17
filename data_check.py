@@ -187,34 +187,64 @@ def section_freshness(D, section):
 PLAYER_STATUSES = ("current", "transferred", "departed", "unknown")
 
 
-def player_status(D):
+def player_status(D, recorded=None):
     """Roster status of each player in the 2025-class forecast list, from the optional top-level field
         "watchClassStatus": {"Player Name": {"status": "current" | "transferred" | "departed" | "unknown", "verified": "YYYY-MM-DD", "source": "..."}}
+    and, optionally, `recorded`: the same mapping from roster_status.json in this repository, where verified statuses are kept under version
+    control when the data file cannot be edited. For a player in both, the later verification date wins (the data file on a tie). Names in
+    roster_status.json that are not in this forecast list are skipped silently, because the list in the data file may differ.
     Returns ({player: {"status", "verified", "source"}}, problems). A player without a valid entry is "not verified". An entry needs a
-    known status AND a valid verification date to count: a status nobody dated is not treated as checked. Nothing is ever inferred."""
-    raw = D.get("watchClassStatus")
+    known status AND a valid verification date to count: a status nobody dated is not treated as checked. Nothing is ever inferred, and the
+    forecast itself is never changed: a status only decides which group the original prediction is listed under."""
     players = [r[0] for r in D.get("watchClass") or [] if isinstance(r, (list, tuple)) and r]
     out = {p: {"status": "not verified", "verified": None, "source": None} for p in players}
     problems = []
-    if raw is None:
-        return out, problems
-    if not isinstance(raw, dict):
-        return out, ["watchClassStatus should map each player's name to {status, verified, source}; it was ignored."]
-    for name, e in raw.items():
-        if name not in out:
-            problems.append(f"watchClassStatus names {name!r}, who is not in the forecast list; ignored.")
+    for raw, where, strict in ((D.get("watchClassStatus"), "watchClassStatus", True), (recorded, "roster_status.json", False)):
+        if raw is None:
             continue
-        if not isinstance(e, dict) or e.get("status") not in PLAYER_STATUSES:
-            problems.append(f"watchClassStatus[{name!r}].status should be one of {', '.join(PLAYER_STATUSES)}; shown as not verified.")
+        if not isinstance(raw, dict):
+            problems.append(f"{where} should map each player's name to {{status, verified, source}}; it was ignored.")
             continue
-        try:
-            verified = date.fromisoformat(str(e.get("verified", ""))).isoformat()
-        except ValueError:
-            problems.append(f"watchClassStatus[{name!r}].verified should be a date (YYYY-MM-DD); shown as not verified.")
-            continue
-        source = e.get("source") if isinstance(e.get("source"), str) and e.get("source").strip() else None
-        out[name] = {"status": e["status"], "verified": verified, "source": source}
+        for name, e in raw.items():
+            if name not in out:
+                if strict:
+                    problems.append(f"{where} names {name!r}, who is not in the forecast list; ignored.")
+                continue
+            if not isinstance(e, dict) or e.get("status") not in PLAYER_STATUSES:
+                problems.append(f"{where}[{name!r}].status should be one of {', '.join(PLAYER_STATUSES)}; shown as not verified.")
+                continue
+            try:
+                verified = date.fromisoformat(str(e.get("verified", ""))).isoformat()
+            except ValueError:
+                problems.append(f"{where}[{name!r}].verified should be a date (YYYY-MM-DD); shown as not verified.")
+                continue
+            if out[name]["verified"] is not None and out[name]["verified"] >= verified:
+                continue  # an equal or later check is already recorded
+            source = e.get("source") if isinstance(e.get("source"), str) and e.get("source").strip() else None
+            out[name] = {"status": e["status"], "verified": verified, "source": source}
     return out, problems
+
+
+def star_series(traj, keys):
+    """The development-chart series `keys` from a traj block ({"years": [...], key: [...], optional "players": {key: [...]}}), or None if any
+    is missing or malformed: every series must have one value (a number, or null for no players) per year. Values are used as given;
+    nothing is filled in, split or estimated. Player counts are returned only when complete for that series."""
+    if not isinstance(traj, dict):
+        return None
+    years = traj.get("years")
+    if not isinstance(years, list) or not years or not all(_count(y, 1) for y in years):
+        return None
+    out = {"years": years, "players": {}}
+    counts = traj.get("players") if isinstance(traj.get("players"), dict) else {}
+    for k in keys:
+        v = traj.get(k)
+        if not isinstance(v, list) or len(v) != len(years) or not all(x is None or (isinstance(x, (int, float)) and not isinstance(x, bool)) for x in v):
+            return None
+        out[k] = v
+        n = counts.get(k)
+        if isinstance(n, list) and len(n) == len(years) and all(_count(x, 0) for x in n):
+            out["players"][k] = n
+    return out
 
 
 def games_through(D, week):

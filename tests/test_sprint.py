@@ -237,13 +237,53 @@ class ForecastStatus(unittest.TestCase):
         t = tables_by_columns(at)
         md = [m.value for m in at.markdown]
         self.assertLess(md.index("**Current Penn State candidates**"), md.index("**Transferred or departed: historical predictions**"))
-        gone = t[("Player", "Position", "Recruiting rating", "First-season production (2025)", CH, "Roster status", "Status verified on")]
+        gone = t[("Player", "Position", "Recruiting rating", "First-season production (2025)", CH, "Roster status", "Status verified on", "Status source")]
         self.assertEqual(gone["Player"].tolist(), ["Leaver"])
         self.assertEqual(gone["Roster status"].tolist(), ["transferred"])
         self.assertIn("**Roster status checked:** 2026-10-15", texts(at))
         self.assertFalse(at.info)  # someone is confirmed, so the "nobody confirmed" notice is not shown
         self.assertIn("Stayer", [s for s in cur["Player"]])
         self.assertNotIn("Leaver", [s for s in cur["Player"]])
+
+    def test_recorded_status_merges_with_the_data_file_and_the_later_check_wins(self):
+        rec = {"Leaver": {"status": "transferred", "verified": "2026-10-17", "source": "news report"},
+               "Somebody else": {"status": "departed", "verified": "2026-10-17"}}  # not in this list: skipped without a warning
+        st, problems = data_check.player_status(forecast_data(), rec)
+        self.assertEqual(st["Leaver"], {"status": "transferred", "verified": "2026-10-17", "source": "news report"})
+        self.assertEqual(st["Stayer"]["status"], "not verified")
+        self.assertEqual(problems, [])
+        newer = forecast_data({"Leaver": {"status": "current", "verified": "2026-10-20", "source": "roster page"}})
+        self.assertEqual(data_check.player_status(newer, rec)[0]["Leaver"]["status"], "current")  # the data file's later check wins
+        older = forecast_data({"Leaver": {"status": "current", "verified": "2026-09-01"}})
+        self.assertEqual(data_check.player_status(older, rec)[0]["Leaver"]["status"], "transferred")
+        tie = forecast_data({"Leaver": {"status": "departed", "verified": "2026-10-17"}})
+        self.assertEqual(data_check.player_status(tie, rec)[0]["Leaver"]["status"], "departed")  # a tie keeps the data file
+        bad = {"Leaver": {"status": "gone", "verified": "2026-10-17"}, "Stayer": {"status": "current", "verified": "soon"}}
+        st, problems = data_check.player_status(forecast_data(), bad)
+        self.assertEqual({st["Leaver"]["status"], st["Stayer"]["status"]}, {"not verified"})
+        self.assertEqual(len(problems), 2)
+        self.assertTrue(all(p.startswith("roster_status.json[") for p in problems))
+
+    def test_the_repository_records_chaz_coleman_as_transferred_with_date_and_source(self):
+        import json
+        rec = json.loads((ROOT / "roster_status.json").read_text())["watchClassStatus"]
+        e = rec["Chaz Coleman"]
+        self.assertEqual((e["status"], e["verified"]), ("transferred", "2026-10-17"))
+        for part in ("2026 roster", "transfer portal", "Tennessee"):
+            self.assertIn(part, e["source"])
+
+    def test_chaz_coleman_forecast_is_kept_as_a_historical_prediction(self):
+        """The original forecast row (72%) is unchanged; only its group changes, with the verification date and source shown."""
+        d = fixture()
+        d["watchClass"] = [["Chaz Coleman", "DL", 0.9065, "3.0 TFL", 0.72], ["Stayer", "DL", 0.9, "5.0 TFL", 0.77]]
+        at = self.view(d)
+        t = tables_by_columns(at)
+        gone = t[("Player", "Position", "Recruiting rating", "First-season production (2025)", CH, "Roster status", "Status verified on", "Status source")]
+        row = gone[gone["Player"] == "Chaz Coleman"].iloc[0]
+        self.assertEqual((row[CH], row["Roster status"], row["Status verified on"]), (72, "transferred", "2026-10-17"))
+        self.assertIn("Tennessee", row["Status source"])
+        self.assertEqual(t[("Player", "Position", "Recruiting rating", "First-season production (2025)", CH)]["Player"].tolist(), ["Stayer"])
+        self.assertIn("**Roster status checked:** 2026-10-17", texts(at))
 
     def test_list_generation_note_comes_only_from_the_data(self):
         d = forecast_data(); d["meta"]["freshness"] = {"watchClass": "not week-dependent: 2025 output and chance estimates; unchanged"}
@@ -423,32 +463,72 @@ class ImportantFindings(unittest.TestCase):
             self.assertIn("Model 9: Opportunity-Adjusted Development (not implemented on this dashboard yet)", texts(open_view(run(path), "Important Findings", "Preliminary")))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class SplitStarDevelopmentChart(unittest.TestCase):
-    def view(self, d):
+    """Four- and five-star lines come only from separately measured series, all lines from one source; the combined line is the fallback."""
+    COMBINED = "4 and 5 stars (combined; source split unavailable)"
+
+    def view(self, d, without=()):
         with tempfile.TemporaryDirectory() as tmp:
-            at = open_view(run(make_app(tmp, data=d)), "Player Development", "Player Development Analytics")
+            at = open_view(run(make_app(tmp, data=d, without=without)), "Player Development", "Player Development Analytics")
             self.assertFalse(at.exception)
             return at
 
-    def test_four_and_five_star_lines_are_separate_when_source_has_both_series(self):
+    def lines(self, at, name):
+        return {t["name"]: t for t in chart(at, name)["data"] if t.get("name")}
+
+    def repo_file(self):
+        import json
+        return json.loads((ROOT / "development_by_star.json").read_text())
+
+    def test_a_split_in_the_data_file_is_used_as_given(self):
         d = fixture()
-        d["traj"]["star4"] = [44, 56]
-        d["traj"]["star5"] = [68, 79]
+        d["traj"].update(star5=[68, 79], star4=[44, 56])
         at = self.view(d)
-        spec = chart(at, "4 stars")
-        names = [trace.get("name") for trace in spec["data"]]
-        self.assertIn("4 stars", names)
-        self.assertIn("5 stars", names)
-        self.assertNotIn("4 and 5 stars (combined; source split unavailable)", names)
+        got = self.lines(at, "4 stars")
+        self.assertEqual({k: list(v["y"]) for k, v in got.items()},
+                         {"4 stars": [44, 56], "5 stars": [68, 79], "3 stars": [40, 50], "2 stars or fewer": [30, 40]})
+        self.assertIn("Source: the dashboard data file.", texts(at))
+
+    def test_without_a_split_in_the_data_file_the_repository_series_are_used_whole(self):
+        f = self.repo_file()
+        at = self.view(fixture())  # the fixture has only the combined series
+        got = self.lines(at, "5 stars")
+        self.assertNotIn(self.COMBINED, got)
+        for name, key in (("5 stars", "star5"), ("4 stars", "star4"), ("3 stars", "star3"), ("2 stars or fewer", "star2")):
+            self.assertEqual(list(got[name]["y"]), f[key], name)  # every line from the file: never mixed with the data file's 3-star line
+            self.assertEqual(list(got[name]["customdata"]), f["players"][key], name)
+            self.assertIn("players)", got[name]["hovertemplate"])
+        self.assertEqual(list(got["5 stars"]["x"]), f["years"])
+        cap = texts(at)
+        self.assertIn(f"Source: {f['provenance']['label']}", cap)
+        self.assertIn("5 stars: " + ", ".join(map(str, f["players"]["star5"])), cap)  # small groups are named with their sizes
+
+    def test_a_malformed_split_is_not_used(self):
+        d = fixture()
+        d["traj"].update(star5=[68], star4=[44, 56])  # one value missing: the data file's split is ignored, nothing is filled in
+        got = self.lines(self.view(d), "5 stars")
+        self.assertEqual(list(got["5 stars"]["y"]), self.repo_file()["star5"])
 
     def test_combined_source_is_disclosed_instead_of_fabricating_a_split(self):
-        at = self.view(fixture())
-        spec = chart(at, "4 and 5 stars (combined; source split unavailable)")
-        names = [trace.get("name") for trace in spec["data"]]
-        self.assertIn("3 stars", names)
-        self.assertIn("2 stars or fewer", names)
+        at = self.view(fixture(), without=("development_by_star.json",))
+        got = self.lines(at, self.COMBINED)
+        self.assertEqual(set(got), {self.COMBINED, "3 stars", "2 stars or fewer"})
+        self.assertEqual(list(got[self.COMBINED]["y"]), [50, 60])
         self.assertIn("The current data source combines four- and five-star recruits.", texts(at))
+
+    def test_repository_series_are_internally_consistent(self):
+        """The combined series in the file must equal the season-weighted mean of its four- and five-star series, so the split series are the
+        same measurement as the combined one, not separate estimates."""
+        f = self.repo_file()
+        self.assertEqual(f["players"]["star45"], [a + b for a, b in zip(f["players"]["star4"], f["players"]["star5"])])
+        n = f["seasons"]
+        self.assertEqual(n["star45"], [a + b for a, b in zip(n["star4"], n["star5"])])
+        for i in range(len(f["years"])):
+            w = (f["star4"][i] * n["star4"][i] + f["star5"][i] * n["star5"][i]) / n["star45"][i]
+            self.assertAlmostEqual(w, f["star45"][i], delta=0.1)  # the file rounds each mean to 0.1
+        self.assertEqual(f["provenance"]["seasons"], [2016, 2025])  # complete seasons only; 2026 is in progress
+        self.assertIn("cd67a64b438c13f0", f["provenance"]["data"])
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,135 @@
+{
+ "years": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "players": {
+  "star5": [
+   7,
+   8,
+   5,
+   4,
+   1
+  ],
+  "star4": [
+   93,
+   91,
+   74,
+   41,
+   19
+  ],
+  "star45": [
+   100,
+   99,
+   79,
+   45,
+   20
+  ],
+  "star3": [
+   52,
+   49,
+   43,
+   25,
+   14
+  ],
+  "star2": [
+   1,
+   2,
+   2,
+   2,
+   1
+  ]
+ },
+ "seasons": {
+  "star5": [
+   7,
+   8,
+   5,
+   4,
+   1
+  ],
+  "star4": [
+   93,
+   91,
+   74,
+   41,
+   24
+  ],
+  "star45": [
+   100,
+   99,
+   79,
+   45,
+   25
+  ],
+  "star3": [
+   52,
+   49,
+   43,
+   25,
+   15
+  ],
+  "star2": [
+   1,
+   2,
+   2,
+   2,
+   1
+  ]
+ },
+ "star5": [
+  81.7,
+  76.9,
+  79.7,
+  79.7,
+  66.7
+ ],
+ "star4": [
+  49.8,
+  65.1,
+  70.7,
+  79.1,
+  79.2
+ ],
+ "star45": [
+  52.0,
+  66.1,
+  71.2,
+  79.1,
+  78.7
+ ],
+ "star3": [
+  31.3,
+  49.6,
+  62.8,
+  70.1,
+  78.0
+ ],
+ "star2": [
+  12.5,
+  27.5,
+  36.0,
+  38.5,
+  32.1
+ ],
+ "provenance": {
+  "label": "PSFAL player-seasons, complete seasons 2016–2025",
+  "data": "player_seasons.parquet, SHA-256 cd67a64b438c13f0d033de0ca685630a80d7d3a238048b8afc6d915e72957525 (CFBD data, pulled by 2026-10-14)",
+  "method": "psfal.modules.development production_table + trajectories (development.py SHA-256 1b28e41adc0fba52), with four- and five-star recruits as separate groups",
+  "seasons": [
+   2016,
+   2025
+  ],
+  "built": "2026-10-17",
+  "groups": {
+   "star5": "5 stars",
+   "star4": "4 stars",
+   "star45": "4 and 5 stars",
+   "star3": "3 stars",
+   "star2": "2 stars or fewer"
+  }
+ }
+}
