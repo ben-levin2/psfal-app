@@ -622,21 +622,34 @@ def _development_analytics():
     st.write("Average production percentile among players at the same position. Later years include only players who stayed, so catching up is partly who remained.")
     T = D["traj"]
     fig = go.Figure()
-    for name, key, col, sym in (("4 and 5 stars", "star45", PSU, "circle"), ("3 stars", "star3", LIGHT, "diamond"), ("2 stars or fewer", "star2", ACCENT, "square")):
+    # Four- and five-star recruits must be separate source series; never split the combined series by guessing.
+    if "star4" in T and "star5" in T:
+        series = (("4 stars", "star4", PSU, "circle"),
+                  ("5 stars", "star5", LIGHT, "diamond"),
+                  ("3 stars", "star3", ACCENT, "square"),
+                  ("2 stars or fewer", "star2", NEUTRAL, "x"))
+    else:
+        series = (("4 and 5 stars (combined; source split unavailable)", "star45", PSU, "circle"),
+                  ("3 stars", "star3", ACCENT, "square"),
+                  ("2 stars or fewer", "star2", NEUTRAL, "x"))
+    for name, key, col, sym in series:
         fig.add_scatter(x=T["years"], y=T[key], mode="lines+markers", name=name, line=dict(color=col, width=3.5),
-                        marker=dict(symbol=sym, size=10, color=col, line=dict(color=PSU if col == LIGHT else "white", width=1.5)),
+                        marker=dict(symbol=sym, size=10, color=col, line=dict(color="white", width=1.5)),
                         hovertemplate=f"{name}: percentile %{{y:.0f}}<extra></extra>")
         fig.add_annotation(x=T["years"][-1], y=T[key][-1], text=f"<b>{T[key][-1]:.0f}</b>", showarrow=False, xanchor="left", xshift=9, font=dict(size=12, color=INK))
-    # the two upper lines end two points apart in year 5; nudge their names apart so they do not overlap
-    ends = sorted(range(3), key=lambda i: -fig.layout.annotations[i].y)
-    for rank, i in enumerate(ends[:2]):
+    # Nudge the two highest end labels apart only when their values nearly overlap.
+    if len(fig.layout.annotations) >= 2:
+        ends = sorted(range(len(fig.layout.annotations)), key=lambda i: -fig.layout.annotations[i].y)
         if abs(fig.layout.annotations[ends[0]].y - fig.layout.annotations[ends[1]].y) < 6:
-            fig.layout.annotations[i].yshift = 9 if rank == 0 else -9
+            fig.layout.annotations[ends[0]].yshift = 9
+            fig.layout.annotations[ends[1]].yshift = -9
     fig.add_hline(y=50, line=dict(color=NEUTRAL, width=1, dash="dot"), layer="below")  # a percentile scale: 50 is the middle player at the position
     fig.update_layout(hovermode="x unified")
     fig.update_xaxes(title="Year in the program", tickvals=T["years"], range=[0.8, T["years"][-1] + 0.4], tickprefix="Year ", hoverformat="d")
     fig.update_yaxes(range=[0, 100], title="Production percentile (50 = middle of the position group)")
     ui.plot(style(fig, 360))
+    if "star4" not in T or "star5" not in T:
+        st.caption("The current data source combines four- and five-star recruits. To show separate lines, update traj.star4 and traj.star5 in the data file; this chart does not estimate or split those values.")
     st.markdown("**Production carries over, improvement does not**  " + BADGE["descriptive"])
     st.write("A player's production percentile correlates **0.71** with his next-year percentile. His year-to-year change correlates **−0.27** with the change the year before "
              "(partly because percentiles stop at 0 and 100). A score built on improvement is not supported. Some players do keep beating their recruiting profile (0.54).")
