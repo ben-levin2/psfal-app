@@ -343,8 +343,12 @@ class ForecastStatus(unittest.TestCase):
         rec = json.loads((ROOT / "roster_status.json").read_text())["watchClassStatus"]
         e = rec["Chaz Coleman"]
         self.assertEqual((e["status"], e["verified"]), ("transferred", "2026-10-17"))
-        for part in ("2026 roster", "transfer portal", "Tennessee"):
-            self.assertIn(part, e["source"])
+        # each date is labelled by what it is: the official-roster check (the "verified" date) and the CFBD data snapshot
+        self.assertIn("Official roster check, 2026-10-17", e["source"])
+        self.assertIn("CFBD roster data snapshot, as of 2026-10-14", e["source"])
+        self.assertIn("transfer portal for Tennessee", e["source"])
+        for unsupported in ("edically", "isqualif", "removed"):
+            self.assertNotIn(unsupported, e["source"])
 
     def test_the_repository_roster_snapshot_is_valid_and_sourced(self):
         import json
