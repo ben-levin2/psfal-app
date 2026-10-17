@@ -11,8 +11,14 @@ Optional coverage metadata (older files without it still work):
 the numbers to watch need not cover the same games, a map from a card's label to its own coverage: the week it is through, the number of
 completed games it includes, or both. A card with no stated coverage shows "Coverage not specified". The snapshot date and meta.through_week
 describe the file as a whole and are never used as a metric's coverage.
+
+Optional freshness metadata, read by section_freshness (older files without it still work):
+    "meta": {"freshness": {"transfers": "NOT refreshed: through week 5 (...)"}, "last_successful_refresh": "2026-10-11T21:30:00-04:00"}
+meta.freshness holds the builder's own note for a section; a note starting "NOT refreshed" marks that section stale. last_successful_refresh
+is when the data file was last rebuilt successfully (ISO 8601). Neither is ever inferred: when the data do not state them, the dashboard says so.
 """
 import re
+from datetime import date, datetime
 
 from ui import game_date
 
@@ -134,6 +140,81 @@ def coverage_note(D, section):
     if latest is not None and cov < _week(latest):
         return f"{name}: through week {cov}. The results include week {_week(latest)}, so these do not include the latest game yet."
     return f"{name}: through week {cov}."
+
+
+def last_successful_refresh(D):
+    """meta.last_successful_refresh when it is a valid ISO 8601 date or date-time, else None (absent or unreadable: never guessed)."""
+    meta = D.get("meta") if isinstance(D.get("meta"), dict) else {}
+    v = meta.get("last_successful_refresh")
+    if not isinstance(v, str) or not v.strip():
+        return None
+    for parse in (datetime.fromisoformat, date.fromisoformat):
+        try:
+            parse(v.strip())
+            return v.strip()
+        except ValueError:
+            continue
+    return None
+
+
+def section_freshness(D, section):
+    """What the data state about one section's freshness, and whether it is stale. Stale means the data say so: the section's stated coverage
+    week is earlier than the latest result, or the builder's note for the section starts "NOT refreshed". Nothing is inferred from the snapshot
+    date, and "up to date" only ever means "with the latest result in this data file", not with the real world.
+    Returns {"cutoff_week", "stated", "status", "reasons", "snapshot", "last_refresh"}; status is "stale", "up to date" or "not stated"."""
+    meta = D.get("meta") if isinstance(D.get("meta"), dict) else {}
+    week = coverage(D).get(section)
+    notes = meta.get("freshness") if isinstance(meta.get("freshness"), dict) else {}
+    stated = notes.get(section).strip() if isinstance(notes.get(section), str) and notes.get(section).strip() else None
+    latest, _ = latest_game(D.get("games") or [])
+    latest_week = _week(latest) if latest is not None else None
+    reasons = []
+    if week is not None and latest_week is not None and week < latest_week:
+        reasons.append(f"it covers through week {week}, but the results include week {latest_week}")
+    if stated and stated.lower().startswith("not refreshed"):
+        reasons.append("the data file says this section was not refreshed")
+    if reasons:
+        status = "stale"
+    elif week is not None and latest_week is not None:
+        status = "up to date"
+    else:
+        status = "not stated"
+    snapshot = meta.get("snapshot") if isinstance(meta.get("snapshot"), str) and meta.get("snapshot").strip() else None
+    return {"cutoff_week": week, "stated": stated, "status": status, "reasons": reasons, "snapshot": snapshot,
+            "last_refresh": last_successful_refresh(D)}
+
+
+PLAYER_STATUSES = ("current", "transferred", "departed", "unknown")
+
+
+def player_status(D):
+    """Roster status of each player in the 2025-class forecast list, from the optional top-level field
+        "watchClassStatus": {"Player Name": {"status": "current" | "transferred" | "departed" | "unknown", "verified": "YYYY-MM-DD", "source": "..."}}
+    Returns ({player: {"status", "verified", "source"}}, problems). A player without a valid entry is "not verified". An entry needs a
+    known status AND a valid verification date to count: a status nobody dated is not treated as checked. Nothing is ever inferred."""
+    raw = D.get("watchClassStatus")
+    players = [r[0] for r in D.get("watchClass") or [] if isinstance(r, (list, tuple)) and r]
+    out = {p: {"status": "not verified", "verified": None, "source": None} for p in players}
+    problems = []
+    if raw is None:
+        return out, problems
+    if not isinstance(raw, dict):
+        return out, ["watchClassStatus should map each player's name to {status, verified, source}; it was ignored."]
+    for name, e in raw.items():
+        if name not in out:
+            problems.append(f"watchClassStatus names {name!r}, who is not in the forecast list; ignored.")
+            continue
+        if not isinstance(e, dict) or e.get("status") not in PLAYER_STATUSES:
+            problems.append(f"watchClassStatus[{name!r}].status should be one of {', '.join(PLAYER_STATUSES)}; shown as not verified.")
+            continue
+        try:
+            verified = date.fromisoformat(str(e.get("verified", ""))).isoformat()
+        except ValueError:
+            problems.append(f"watchClassStatus[{name!r}].verified should be a date (YYYY-MM-DD); shown as not verified.")
+            continue
+        source = e.get("source") if isinstance(e.get("source"), str) and e.get("source").strip() else None
+        out[name] = {"status": e["status"], "verified": verified, "source": source}
+    return out, problems
 
 
 def games_through(D, week):

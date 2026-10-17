@@ -18,6 +18,8 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 import data_check
+import findings
+import models
 import ui
 from ui import ACCENT, BADGE, BAD, INK, LIGHT, NEUTRAL, PSU
 
@@ -241,18 +243,35 @@ for p in POS:
 st.session_state.setdefault("preset", "Every position counts the same")
 st.session_state.setdefault("cost", 2.0)
 
-REC_SUBS = ["Recruiting Intelligence", "Recruit Development Forecast", "Market Inefficiency Model"]
-TRN_SUBS = ["Transfer Production Translation", "Transfer Portal Analytics"]
-DEV_SUBS = ["Player Development Analytics", "Development Trajectory & Breakout Forecast"]
-ROS_SUBS = ["Roster Analytics", "Retention & Continuity Forecast", "Decision Tool"]
-CER_SUBS = ["Championship Gap", "Big Ten Competitive Intelligence", "Game Analytics"]
+# Sub-sections come from the canonical 15-model architecture in models.py (numbered labels such as "13 · Market Inefficiency Model").
+L = models.label
+CHANCE = "Chance of becoming a strong producer by 2027"  # Model 2 forecast column (was "Chance")
+RC_YEAR, RC_CORR, RC_N = "Year in the program", "Rating vs production (rank correlation)", "Players measured"  # Model 1 table (was Year, Correlation, Players)
+REC_SUBS, TRN_SUBS, DEV_SUBS, ROS_SUBS, CER_SUBS = (models.options(f) for f in models.FAMILIES)
 RM_SUBS = ["All findings", "Module status", "Limitations & methods"]
 ui.keep_state([f"s_{p}" for p in POS] + [f"w_{p}" for p in POS] + ["preset", "cost", "c15_window", "c15_fixed",
-                                                                    "sub_rec", "sub_trn", "sub_dev", "sub_ros", "sub_cer", "sub_rm"])
+                                                                    "sub_rec", "sub_trn", "sub_dev", "sub_ros", "sub_cer", "sub_rm", "sub_if"])
 
 
 def _status(*names):
     ui.module_status(D.get("modules", []), names)
+
+
+def _model_header(name):
+    """Which canonical model this view is, and how much of it is implemented here (implementation status, not research validation)."""
+    if name in models.SUPPORTING.get("Competitive Edge Research", []):
+        st.caption("**Supporting analysis**, not one of the 15 PSFAL models. Kept here because the competitive-edge research builds on it.")
+        return
+    n, _, family, status, note = models.model(name)
+    st.caption(f"**Model {n} of 15** · {family} · **{models.STATUS_LABEL[status]}**" + (f". {note}" if note else ""))
+
+
+def _not_implemented(name):
+    """The page of a canonical model with no analysis yet. Nothing else is shown, so nothing is implied."""
+    _model_header(name)
+    st.subheader(name)
+    st.info("**Not implemented.** No analysis, data or results exist for this model yet, so this page shows nothing else. "
+            "It is listed so the full 15-model plan stays visible.", icon=":material/construction:")
 
 
 # ================================================================ Home
@@ -287,10 +306,10 @@ def home():
     st.subheader("Key Findings")
     # (question, key statistic, what the statistic is, index into FINDINGS, sub-section to open, link text, page, sub-section key)
     cards = [
-        ("How does Penn State do against elite teams?", "5–22", "Against the SP+ top 10", 0, "Championship Gap", "Open the championship gap analysis", CER, "sub_cer"),
-        ("Where is the gap to champions largest?", "1.57 SD", "Behind champions in passing, 2021 to 2025", 1, "Championship Gap", "Open the championship gap analysis", CER, "sub_cer"),
-        ("Do some recruits beat their ratings in a repeatable way?", "None found", "Repeatable undervalued recruit types, 15 programs", 4, "Market Inefficiency Model", "Open recruiting and portal results", REC, "sub_rec"),
-        ("Recruit or transfer for an open roster spot?", "About 1.5×", "Break-even cost of a transfer spot vs a recruit's", 7, "Decision Tool", "Open the decision tool", ROS, "sub_ros"),
+        ("How does Penn State do against elite teams?", "5–22", "Against the SP+ top 10", 0, L("Championship Gap"), "Open the championship gap analysis", CER, "sub_cer"),
+        ("Where is the gap to champions largest?", "1.57 SD", "Behind champions in passing, 2021 to 2025", 1, L("Championship Gap"), "Open the championship gap analysis", CER, "sub_cer"),
+        ("Do some recruits beat their ratings in a repeatable way?", "None found", "Repeatable undervalued recruit types, 15 programs", 4, L("Market Inefficiency Model"), "Open the Market Inefficiency Model", CER, "sub_cer"),
+        ("Recruit or transfer for an open roster spot?", "About 1.5×", "Break-even cost of a transfer spot vs a recruit's", 7, L("Resource Allocation Optimization"), "Open the decision tool", ROS, "sub_ros"),
     ]
     for row in (cards[:2], cards[2:]):
         cols = st.columns(2)
@@ -302,6 +321,7 @@ def home():
                     st.write(CARD_TEXT[fi])
                     ui.open_analysis(link, page, sub_key, sub, key=f"go_finding_{fi}")
     ui.open_analysis("All eight findings and what the evidence labels mean", RESEARCH, "sub_rm", "All findings", key="go_all_findings")
+    ui.open_analysis("Important Findings: what the research shows and how strong the evidence is", IMPORTANT, key="go_important_findings")
 
     st.subheader("This season: numbers to watch")
     w = st.columns(max(len(D["watch"]), 1))
@@ -399,24 +419,97 @@ def games_2026():
 
 # ================================================================ 1. Recruiting High Schoolers
 def _recruiting_intelligence():
+    _model_header('Recruiting Intelligence')
     _status("Recruiting intelligence")
+    st.subheader("How much does a recruiting rating tell us about how a player will produce?")
     st.markdown("**A rating matters most early**  " + BADGE["descriptive"])
-    ui.table(pd.DataFrame(D["ratingCorr"], columns=["Year", "Correlation", "Players"]), "rating_corr", {"Correlation": "{:.2f}"})
+    rc = pd.DataFrame(D["ratingCorr"], columns=[RC_YEAR, RC_CORR, RC_N])
+    if len(rc):
+        first, last = rc.iloc[0], rc.iloc[-1]
+        st.markdown(f"In year {first[RC_YEAR]:.0f}, players' recruiting ratings and their production line up at **{first[RC_CORR]:.2f}** "
+                    f"({first[RC_N]:.0f} players). By year {last[RC_YEAR]:.0f} it is **{last[RC_CORR]:.2f}** ({last[RC_N]:.0f} players). "
+                    "On this scale 0 means a rating says nothing about the order of production and 1 means it predicts the order exactly.")
+    ui.table(rc, "rating_corr", {RC_CORR: "{:.2f}"})
+    with st.container(border=True, key="panel_recruiting_guide"):
+        st.markdown("**How to use this**")
+        st.markdown(
+            "- **What it shows:** how closely recruiting ratings and on-field production line up, year by year in the program. It does not score "
+            "individual recruits; for named 2025 signees, see Model 2.\n"
+            "- **What it means for Penn State:** a rating is useful information, especially early, but it leaves most of the difference between "
+            "players unexplained. Across 15 programs, ratings explained only about a quarter of production (a tested finding, Model 13).\n"
+            "- **How confident to be:** this table is descriptive, with no cause claimed."
+            + (f" The smallest year has {rc[RC_N].min():.0f} players, so small differences between years are not meaningful." if len(rc) else "") + "\n"
+            "- **Limitations:** production is a volume measure, so it mixes ability with playing time and scheme. Later years include only players "
+            "who stayed. Offensive line production cannot be measured.")
+    with st.expander("Technical details"):
+        st.caption("In the PSFAL development module this is a Spearman rank correlation between a recruit's rating and his production percentile "
+                   "among players at the same position that season, grouped by year in the program (the last group includes later years). "
+                   "The data file does not record which run of the module produced the numbers shown.")
     st.caption("Penn State's recruiting class rank for each season is in the season-by-season table under Competitive Edge Research. "
                "The recruiting module's class makeup, geography and retention results are not included in this dashboard's data.")
-    ui.open_analysis("Season-by-season class ranks", CER, "sub_cer", "Championship Gap", key="go_class_ranks")
+    ui.open_analysis("Season-by-season class ranks", CER, "sub_cer", L("Championship Gap"), key="go_class_ranks")
 
 
 def _recruit_forecast():
+    _model_header('Recruit Development Forecast')
     st.markdown("**Penn State's 2025 class: most likely strong producers by 2027**")
-    wc = pd.DataFrame(D["watchClass"], columns=["Player", "Pos", "Rating", "2025 output", "Chance"])
-    wc["Chance"] = (wc["Chance"] * 100).round(0).astype(int)  # same rounding as before; kept as a number so the column sorts numerically
-    ui.table(wc, "watch_class", {"Rating": "{:.2f}", "Chance": "{:d}%"})
+    statuses, problems = data_check.player_status(D)
+    base = ["Player", "Position", "Recruiting rating", "First-season production (2025)", CHANCE]
+    wc = pd.DataFrame(D["watchClass"], columns=base)
+    wc[CHANCE] = (wc[CHANCE] * 100).round(0).astype(int)  # same rounding as before; kept as a number so the column sorts numerically
+    wc["Roster status"] = [statuses[p]["status"] for p in wc["Player"]]
+    wc["Status verified on"] = [statuses[p]["verified"] for p in wc["Player"]]
+    fmt = {"Recruiting rating": "{:.2f}", CHANCE: "{:d}%"}
+    # (statuses, heading, columns, note). Only a dated "current" status puts a player among current candidates; nothing is inferred.
+    groups = ((("current",), "Current Penn State candidates", base + ["Status verified on"],
+               "Players the data record as on the current Penn State roster, with the date that was checked."),
+              (("transferred", "departed"), "Transferred or departed: historical predictions", base + ["Roster status", "Status verified on"],
+               "These chances were generated before the player left. They are kept as a record of what the forecast said, not as current candidates."),
+              (("unknown",), "Current status unknown", base + ["Status verified on"], "The data record that these players' current status could not be determined."),
+              (("not verified",), "Roster status not verified", base,
+               "Shown as originally generated. The data file does not record whether these players are still at Penn State, so none is presented as a "
+               "current candidate. A player may have transferred or left since the list was made."))
+    current = wc[wc["Roster status"] == "current"]
+    for want, title, cols, note in groups:
+        rows = wc[wc["Roster status"].isin(want)]
+        if want == ("current",):
+            st.markdown(f"**{title}**")
+            if len(rows):
+                ui.table(rows[cols], "watch_class_current", fmt)
+                st.caption(note)
+            else:
+                st.info("No player in this list has a verified current Penn State roster status in the data, so nobody is shown here as a current "
+                        "candidate.", icon=":material/person_search:")
+        elif len(rows):
+            st.markdown(f"**{title}**")
+            ui.table(rows[cols], "watch_class" if want == ("not verified",) else f"watch_class_{want[0]}", fmt)
+            st.caption(note)
     st.caption("A ranking aid with wide uncertainty.")
-    ui.open_analysis("Related: who becomes a strong producer by year 3, and its calibration check", DEV, "sub_dev", "Development Trajectory & Breakout Forecast", key="go_forecast_check")
+    for p in problems:
+        st.caption(f"Data note: {p}")
+    fr = data_check.section_freshness(D, "watchClass")
+    checked = sorted({s["verified"] for s in statuses.values() if s["verified"]})
+    st.caption("**List generated:** " + (f"as stated in the data file: “{fr['stated']}”" if fr["stated"] else "date not recorded in the data")
+               + "  \n**Roster status checked:** " + (", ".join(checked) if checked else "not recorded in the data"))
+    with st.container(border=True, key="panel_forecast_guide"):
+        st.markdown("**How to read this forecast**")
+        st.markdown(
+            "- **What it predicts:** each player's chance of becoming a strong producer by 2027, his third season. The data file does not record the "
+            "exact outcome definition or model behind this list. Elsewhere on this dashboard (Model 12), a strong producer is the 67th percentile or "
+            "better at the position.\n"
+            "- **Evidence behind it:** the recruiting rating and first-season (2025) production in the table. In the related backtest (Model 8), "
+            "adding first-year production raised accuracy (AUC) from 0.65 to 0.73.\n"
+            "- **How confident to be:** low for any single player. In that backtest the middle of the range was too high (players predicted at 58% "
+            "became strong producers 36% of the time), so treat the chances as an order, not as odds.\n"
+            "- **What it means for Penn State:** which members of the 2025 class to watch, but only among players confirmed to be on the roster"
+            + (" (listed above)." if len(current) else "; no player is confirmed in this data.") + "\n"
+            "- **Limitations:** the list is not regenerated each week, roster status is not part of the model, and playing time, injuries and "
+            "depth-chart position are not in the data.")
+    ui.open_analysis("Related: who becomes a strong producer by year 3, and its calibration check", DEV, "sub_dev", L("Development Trajectory & Breakout Forecast"), key="go_forecast_check")
 
 
 def _market():
+    _model_header('Market Inefficiency Model')
     _status("Market inefficiency")
     st.subheader("Do some programs get more from their recruits than ratings predict?  " + BADGE["tested"])
     st.write("Average gap between actual production and what a recruit's rating, year and position predict, in percentile points. The solid dot is the later classes (2020 to 2022) with its 95% range; the open dot is the earlier classes (2016 to 2019).")
@@ -456,11 +549,13 @@ def _market():
 
 def recruiting():
     sub = ui.subnav("sub_rec", REC_SUBS)
-    {"Recruiting Intelligence": _recruiting_intelligence, "Recruit Development Forecast": _recruit_forecast, "Market Inefficiency Model": _market}[sub]()
+    {L("Recruiting Intelligence"): _recruiting_intelligence, L("Recruit Development Forecast"): _recruit_forecast,
+     L("Recruiting Fit & Scheme Projection"): lambda: _not_implemented("Recruiting Fit & Scheme Projection")}[sub]()
 
 
 # ================================================================ 2. Transfer Portal
 def _transfer_translation():
+    _model_header('Transfer Production Translation')
     _status("Transfer portal")
     st.subheader("What predicts how a transfer produces at his new school?  " + BADGE["tested"])
     st.write("709 portal arrivals into Penn State and 14 peers (2021 to 2025); 544 could be matched to a roster. Gap = production percentile minus the average transfer at his position.")
@@ -479,10 +574,29 @@ def _transfer_translation():
     st.markdown("- **The portal rating carries information.** Rank correlation with production at the new school was 0.31, then 0.37 in the later classes (range 0.27 to 0.47).\n"
                 "- **Step-up transfers produce less, mostly because of one group.** Transfers from outside the top 65 or from non-FBS schools produced 3.1 points less, then 8.6 less (range 2.8 to 14.4). Nearly all of it is the last row above.\n"
                 "- **Within FBS the gap is small.** Lower-ranked FBS origins were 3.9 points lower than top-65 ones, which cannot be told apart from zero (range −9.9 to +2.3). After allowing for the rating, the overall gap is about 5 points. Those two checks were exploratory.")
-    ui.open_analysis("Recruit or transfer for an open spot: the decision tool", ROS, "sub_ros", "Decision Tool", key="go_decision_from_portal")
+    ui.open_analysis("Recruit or transfer for an open spot: the decision tool", ROS, "sub_ros", L("Resource Allocation Optimization"), key="go_decision_from_portal")
+
+
+def _freshness_panel(section, label):
+    """Data cutoff, snapshot and last successful refresh for one section, exactly as the data state them; a stale section is marked stale."""
+    f = data_check.section_freshness(D, section)
+    if f["status"] == "stale":
+        st.warning(f"**Stale: {label} are not current.** " + "; ".join(r[0].upper() + r[1:] for r in f["reasons"])
+                   + ". They are shown as last recorded.", icon=":material/history:")
+    if f["cutoff_week"] is not None:
+        cutoff = f"through week {f['cutoff_week']} of {SEASON}"
+    elif f["stated"]:
+        cutoff = f"as stated in the data file: “{f['stated']}”"
+    else:
+        cutoff = "not stated in the data"
+    status = {"stale": "stale", "up to date": "up to date with the latest result in this data file", "not stated": "not stated in the data"}[f["status"]]
+    st.caption(f"**Data cutoff:** {cutoff}  \n**Freshness:** {status}  \n**Data snapshot:** {f['snapshot'] or 'not stated'}  \n"
+               f"**Latest successful refresh:** {f['last_refresh'] or 'not recorded in the data'}")
 
 
 def _transfer_analytics():
+    _model_header('Transfer Portal Analytics')
+    _freshness_panel("transfers", "these transfer statistics")
     st.markdown("**Penn State's 2026 transfers: highest production so far**")
     ui.table(pd.DataFrame(D["transfers"], columns=["Player", "Pos", "From", "So far"]), "transfers")
     cov = data_check.coverage(D).get("transfers")
@@ -496,11 +610,13 @@ def _transfer_analytics():
 
 def transfer_portal():
     sub = ui.subnav("sub_trn", TRN_SUBS)
-    {"Transfer Production Translation": _transfer_translation, "Transfer Portal Analytics": _transfer_analytics}[sub]()
+    {L("Transfer Portal Analytics"): _transfer_analytics, L("Transfer Production Translation"): _transfer_translation,
+     L("Portal Fit & Acquisition Value"): lambda: _not_implemented("Portal Fit & Acquisition Value")}[sub]()
 
 
 # ================================================================ 3. Player Development
 def _development_analytics():
+    _model_header('Player Development Analytics')
     _status("Development")
     st.subheader("Production by year in the program, for recruits who stayed")
     st.write("Average production percentile among players at the same position. Later years include only players who stayed, so catching up is partly who remained.")
@@ -527,6 +643,7 @@ def _development_analytics():
 
 
 def _breakout_forecast():
+    _model_header('Development Trajectory & Breakout Forecast')
     st.subheader("Who becomes a strong producer by year 3?  " + BADGE["tested"])
     st.write("**First-year production helps, modestly.** Accuracy (AUC; 0.5 is a coin flip) rose from 0.65 with rating and position to 0.73 once first-year production was added "
              "(gain +0.07, range +0.05 to +0.11). Among slow starters, top-third-rated recruits became strong producers 12 points more often than bottom-third ones (range +3.5 to +21.5).")
@@ -553,16 +670,18 @@ def _breakout_forecast():
     c2.caption("How to read it: each dot is one of five groups, from least to most likely. On the dashed line, the forecast matched what happened; "
                "below it, the forecast was too high. The dotted lines show each group's miss.")
     st.caption("The order held, but the middle overstated the chance (players predicted at 58% were strong 36% of the time), because more players left in the later classes. Use it as a ranking, not as odds.")
-    ui.open_analysis("Related: Penn State's 2025 class, most likely strong producers by 2027", REC, "sub_rec", "Recruit Development Forecast", key="go_class_forecast")
+    ui.open_analysis("Related: Penn State's 2025 class, most likely strong producers by 2027", REC, "sub_rec", L("Recruit Development Forecast"), key="go_class_forecast")
 
 
 def player_development():
     sub = ui.subnav("sub_dev", DEV_SUBS)
-    {"Player Development Analytics": _development_analytics, "Development Trajectory & Breakout Forecast": _breakout_forecast}[sub]()
+    {L("Player Development Analytics"): _development_analytics, L("Development Trajectory & Breakout Forecast"): _breakout_forecast,
+     L("Opportunity-Adjusted Development"): lambda: _not_implemented("Opportunity-Adjusted Development")}[sub]()
 
 
 # ================================================================ 4. Roster Construction
 def _roster_analytics():
+    _model_header('Roster Analytics')
     _status("Roster")
     st.subheader("Share of last year's roster and production that came back")
     st.write("The bar is 2026. The marks show the 2015 to 2025 average and the previous lowest.")
@@ -585,6 +704,7 @@ def _roster_analytics():
 
 
 def _retention_forecast():
+    _model_header('Retention & Continuity Forecast')
     st.subheader("Looking ahead to 2027 and 2028")
     st.write("About **64% of the 2026 roster (71 of 112 players)** is expected back in 2027. At a 105-player roster limit that leaves roughly 34 spots for the 2027 class and the portal. The limit is an assumption to confirm.")
     st.warning("Do not lean on the position-by-position numbers. In a backtest on 2022 to 2025, the models missed by 2.0 players per position group, the same as assuming everyone returns at the overall rate (1.97). "
@@ -611,7 +731,10 @@ def _retention_forecast():
 
 
 def _decision():
+    _model_header('Resource Allocation Optimization')
     _status("Resource allocation")
+    st.warning("**Decision Tool: an assumption-based what-if tool, not a validated optimization model.** It shows what follows from the costs and "
+               "weights you enter. It does not search for an optimal roster, and its answers have not been checked against outcomes.", icon=":material/tune:")
     st.subheader("Recruit or transfer?  " + BADGE["assumption"])
     st.write("The data show how often a roster spot ends up with a **strong producer** (67th percentile or better at the position): 43% of recruit player-seasons and 63% of transfer player-seasons, "
              "so a transfer yields about 1.5 times as much. Whether that is worth it depends on what a transfer costs, and **there is no public cost or NIL data**. Move the slider to try a cost.")
@@ -645,12 +768,13 @@ def _decision():
     ui.plot(style(fig, 330, legend=False).update_layout(margin=dict(t=34)))  # room for the labels above the plot
     ui.table(Y[["Position", "Recruits strong", "Transfers strong", "Break-even cost", "Better use of a spot"]], "yields",
              {"Recruits strong": ui.pct, "Transfers strong": ui.pct, "Break-even cost": "{:.2f}"})
-    st.caption("Dot color: navy where a transfer is the better use of a spot at your cost, slate where a recruit is.")
+    with st.expander("How to read this chart"):  # chart-reading notes, wording unchanged; the limitation below stays in view
+        st.caption("Dot color: navy where a transfer is the better use of a spot at your cost, slate where a recruit is.")
+        st.caption("Reading the chart: a position's verdict is next to its name. Where the dot sits in the shaded area, its break-even is above your cost, so a transfer is the better use "
+                   "of a spot under these assumptions. Where a position's 95% range crosses your cost line, its verdict is uncertain.")
     st.caption("To the left of the dark dot, a transfer is the better use of a spot; to the right, a recruit. Transfers are counted only if they reached a roster, and they are signed to play right away, "
                "so part of the gap is playing time and not ability.")
-    st.caption("Reading the chart: a position's verdict is next to its name. Where the dot sits in the shaded area, its break-even is above your cost, so a transfer is the better use "
-               "of a spot under these assumptions. Where a position's 95% range crosses your cost line, its verdict is uncertain.")
-    ui.open_analysis("Related transfer research: what predicts how a transfer produces", TRN, "sub_trn", "Transfer Production Translation", key="go_portal_from_decision")
+    ui.open_analysis("Related transfer research: what predicts how a transfer produces", TRN, "sub_trn", L("Transfer Production Translation"), key="go_portal_from_decision")
 
     st.subheader("Which position gets the next spots?  " + BADGE["assumption"])
     st.write("The data **cannot** say how much a spot at one position is worth compared with another, because \"strong\" is measured within each position. This ranking comes only from the numbers you put in. "
@@ -674,7 +798,7 @@ def _decision():
 
 def roster_construction():
     sub = ui.subnav("sub_ros", ROS_SUBS)
-    {"Roster Analytics": _roster_analytics, "Retention & Continuity Forecast": _retention_forecast, "Decision Tool": _decision}[sub]()
+    {L("Roster Analytics"): _roster_analytics, L("Retention & Continuity Forecast"): _retention_forecast, L("Resource Allocation Optimization"): _decision}[sub]()
 
 
 # ================================================================ 5. Competitive Edge Research
@@ -720,9 +844,28 @@ def _gap_chart(rows):
     return fig
 
 
+def _what_is_sp_plus():
+    """Short explainer placed before the first chart that uses SP+. Source facts are from the pipeline code (psfal/pull.py requests CFBD's
+    ratings/sp); the pull date is not in the dashboard data, so it is stated as not recorded."""
+    with st.expander("What is SP+?"):
+        st.markdown(
+            "- **What it measures:** SP+ is a rating of how efficient a team is, adjusted for the pace it plays at and the opponents it faced. "
+            "It has overall, offense and defense versions, in points relative to an average team.\n"
+            "- **Why PSFAL uses it:** it puts every FBS team in every season on one opponent-adjusted scale, and it is available for all of 2014 "
+            "to 2025 through the same public data service PSFAL already uses.\n"
+            "- **How it helps here:** it compares Penn State with playoff teams and champions, and it sorts Penn State's opponents by strength "
+            "(the \"How Penn State loses\" chart groups games by the opponent's SP+ rank that season).\n"
+            "- **What it cannot tell us:** why a game was won or lost. It is built from the same results it rates, so comparing champions on it "
+            "is partly circular, and it describes teams, not players. It does not by itself explain wins and losses.")
+        st.caption("Source: SP+ ratings by Bill Connelly, as published through CollegeFootballData.com (the ratings/sp data the PSFAL pipeline requests). "
+                   "The date the ratings were downloaded, and whether they are final end-of-season values, are not recorded in the dashboard data.")
+
+
 def _championship_gap():
+    _model_header('Championship Gap')
     st.subheader("Average over 2014 to 2025, in standard deviations above the FBS average")
     st.write("Higher is better, and defense is shown so that higher means fewer points allowed per play.")
+    _what_is_sp_plus()
     ui.plot(_gap_chart(D["gap"]))
     st.caption("Numbers at the right: Penn State minus champions on that measure, in standard deviations (negative means Penn State is behind).")
     st.caption("Record, SP+ and per-play rows are partly circular because champions are chosen for winning. Talent and recruiting are the cleaner comparison. About 12 champions describe a profile and cannot predict a winner.")
@@ -750,24 +893,27 @@ def _championship_gap():
 
 
 def _big_ten():
+    _model_header('Big Ten Competitive Intelligence')
     try:
         from child15.page import render as _render_child15
     except Exception as ex:
         st.error(f"The Big Ten benchmark page could not be loaded ({type(ex).__name__}). The rest of the dashboard is unaffected.")
     else:
-        _render_child15(PSU, LIGHT, ACCENT, style, grouped_dots)
+        _render_child15(PSU, LIGHT, ACCENT, style, grouped_dots, sp_explainer=_what_is_sp_plus)
 
 
 def _game_analytics():
+    _model_header('Game Analytics')
     _status("Game analytics")
-    st.write("The dashboard's 2026 game-by-game results (each game against Penn State's own history, what stood out, and three numbers to watch) "
-             "are on the 2026 Games page.")
+    st.info("**Link only.** No game-analytics model is implemented on this page. The 2026 Games page is a resource: it shows each game's result, "
+            "per-play efficiency scored against Penn State's earlier games, what stood out, and three numbers to watch.", icon=":material/link:")
     ui.open_analysis("Open 2026 Games", GAMES, key="go_games_from_cer")
 
 
 def competitive_edge():
     sub = ui.subnav("sub_cer", CER_SUBS)
-    {"Championship Gap": _championship_gap, "Big Ten Competitive Intelligence": _big_ten, "Game Analytics": _game_analytics}[sub]()
+    {L("Market Inefficiency Model"): _market, L("Game Analytics"): _game_analytics, L("Big Ten Competitive Intelligence"): _big_ten,
+     L("Championship Gap"): _championship_gap}[sub]()
 
 
 # ================================================================ Research & Methods
@@ -781,6 +927,20 @@ def _all_findings():
 
 
 def _modules():
+    st.subheader("Module status: the 15 PSFAL models")
+    st.write("Two different questions, kept apart: **is it on the dashboard** (implementation), and **how strong is the research behind it** "
+             "(research status). Code existing does not make a model validated.")
+    # one table per family (no Family column) and both statuses in one labelled cell: with four or five columns, words broke mid-word on a phone
+    for i, family in enumerate(models.FAMILIES):
+        st.markdown(f"**{family}**")
+        rows = [{"Model": models.label(name), "Status": f"On this dashboard: {models.STATUS_LABEL[status]}. Research: {models.RESEARCH[n][0]}.",
+                 "Evidence": models.RESEARCH[n][1]} for n, name, fam, status, _ in models.MODELS if fam == family]
+        ui.table(pd.DataFrame(rows), f"model_status_{i}")
+    st.caption("Supporting analysis, not one of the 15 models: Championship Gap (descriptive). Validated means fixed in advance and checked on "
+               "held-out seasons. 'Original dashboard label' entries repeat the dashboard's own evidence label; the reports behind them are not "
+               "in this repository.")
+    st.caption("Status history: the module table below is the data file's original record, from the lab's earlier eight-module structure. It is "
+               "kept unchanged.")
     st.subheader("The eight modules")
     ui.table(pd.DataFrame(D["modules"], columns=["Module", "Where it stands", "What it does and does not do"]), "modules")
 
@@ -798,6 +958,54 @@ def _limits_methods():
              "the same way in both groups and the later group's 95% range excluded zero. Several tests came back negative, and those are reported as findings.")
 
 
+# ================================================================ Important Findings
+IF_BADGE = {"validated": ":blue-background[Validated]", "preliminary": ":gray-background[Preliminary]", "hypothesis": ":orange-background[Hypothesis]",
+            "dashboard": ":violet-background[Original reports unavailable]"}
+IF_SUBS = ["All", "Validated", "Preliminary", "Hypotheses", "Dashboard findings"]
+IF_GROUPS = ("validated", "preliminary", "hypothesis", "dashboard")
+
+
+def _model_ref(m):
+    if isinstance(m, int):
+        n, name, family, status, _ = models.MODELS[m - 1]
+        return f"Model {n}: {name}" + (" (not implemented on this dashboard yet)" if status == "not implemented" else "")
+    return str(m)
+
+
+def important_findings():
+    st.subheader("Important Findings")
+    st.write("What PSFAL's research has found so far, in plain English, with how strong the evidence is. Each finding shows its source, sample, "
+             "data cutoff and limitations. None of them shows cause and effect.")
+    cols = st.columns(4)
+    for c, k in zip(cols, IF_GROUPS):
+        n = sum(f["status"] == k for f in findings.FINDINGS)
+        c.markdown(f"{IF_BADGE[k]} **{n} {'finding' if n == 1 else 'findings'}**  \n{findings.STATUS[k][1]}")
+    st.caption(f"Validation reports run 2026-10-14 on Penn State player-seasons through 2025. Dashboard data snapshot: {D['meta'].get('snapshot', 'not stated')}.")
+    show = ui.subnav("sub_if", IF_SUBS)
+    want = {"All": IF_GROUPS, "Validated": ("validated",), "Preliminary": ("preliminary",), "Hypotheses": ("hypothesis",),
+            "Dashboard findings": ("dashboard",)}[show]
+    for k in want:
+        rows = [f for f in findings.FINDINGS if f["status"] == k]
+        if rows:
+            st.markdown(f"### {findings.STATUS[k][0]}")
+            if k == "dashboard":
+                st.caption(findings.STATUS[k][1])
+        for f in rows:
+            with st.container(border=True, key=f"panel_finding_{f['key']}"):
+                # a dashboard finding shows its original evidence label, unchanged; report-based findings show their status
+                st.markdown(BADGE[f["label"]] + "  :gray[original dashboard evidence label]" if "label" in f else IF_BADGE[f["status"]])
+                st.markdown(f"#### {f['headline']}")
+                if f["status"] == "dashboard":
+                    st.caption(findings.ADDED_NOTE)
+                st.write(f["plain"])
+                st.markdown(f"**Why it matters for Penn State:** {f['matters']}")
+                st.caption(f"**Result:** {f['result']}  \n**Model:** {_model_ref(f['model'])}  \n**Sample:** {f['sample']}  \n**Data cutoff:** {f['cutoff']}")
+                with st.expander("Limitations and source"):
+                    st.markdown("\n".join(f"- {x}" for x in f["limits"]))
+                    sha = findings.REPORTS.get(f["source"])
+                    st.caption(f"Source: {f['source']}" + (f" (PSFAL validation report, SHA-256 {sha[:12]}…)" if sha else ""))
+
+
 def research_methods():
     sub = ui.subnav("sub_rm", RM_SUBS)
     {"All findings": _all_findings, "Module status": _modules, "Limitations & methods": _limits_methods}[sub]()
@@ -812,12 +1020,14 @@ ROS = st.Page(roster_construction, title="Roster Construction", icon=":material/
 CER = st.Page(competitive_edge, title="Competitive Edge Research", icon=":material/insights:", url_path="competitive-edge")
 GAMES = st.Page(games_2026, title="2026 Games", icon=":material/sports_football:", url_path="games-2026")
 RESEARCH = st.Page(research_methods, title="Research & Methods", icon=":material/science:", url_path="research-methods")
-current = st.navigation([HOME, REC, TRN, DEV, ROS, CER, GAMES, RESEARCH], position="hidden")
+IMPORTANT = st.Page(important_findings, title="Important Findings", icon=":material/lightbulb:", url_path="important-findings")
+current = st.navigation([HOME, REC, TRN, DEV, ROS, CER, IMPORTANT, GAMES, RESEARCH], position="hidden")
 
 _SOURCE_LABEL = {"live file": "live data link", "app secret": "snapshot from the app settings", "bundled snapshot": "bundled snapshot"}
-ui.brand_header("What public data say about Penn State football from 2014 to 2026, with the uncertainty shown.",
+TAGLINE = "What public data says about Penn State football from 2014 to 2026, with uncertainty shown."  # the standard wording; tested
+ui.brand_header(TAGLINE,
                 f"<strong>Data through week {ui.esc(D['meta']['through_week'])} of 2026</strong> · snapshot {ui.esc(D['meta']['snapshot'])} · "
-                f"source: {ui.esc(_SOURCE_LABEL.get(SOURCE, SOURCE))}", HOME, [REC, TRN, DEV, ROS, CER], [GAMES, RESEARCH], current)
+                f"source: {ui.esc(_SOURCE_LABEL.get(SOURCE, SOURCE))}", HOME, [REC, TRN, DEV, ROS, CER], [IMPORTANT, GAMES, RESEARCH], current)
 if NOTES:
     st.warning("Data note: " + "; ".join(NOTES) + f". Showing the {_SOURCE_LABEL.get(SOURCE, SOURCE)} instead.")
 try:

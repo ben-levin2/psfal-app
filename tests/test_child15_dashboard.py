@@ -25,6 +25,9 @@ def make_app(tmp, with_report=True, report_text=None, app_src=None, data=None):
     (tmp / "streamlit_app.py").write_text(app_src if app_src is not None else (ROOT / "streamlit_app.py").read_text())
     shutil.copy(ROOT / "ui.py", tmp / "ui.py")
     shutil.copy(ROOT / "data_check.py", tmp / "data_check.py")
+    for extra in ("models.py", "findings.py"):  # added in the improvement sprint
+        if (ROOT / extra).exists():
+            shutil.copy(ROOT / extra, tmp / extra)
     (tmp / "dashboard_data.json").write_text(json.dumps(data if data is not None else fixture()))
     shutil.copytree(ROOT / "child15", tmp / "child15", ignore=shutil.ignore_patterns("__pycache__", "*.md"))
     if with_report:
@@ -58,11 +61,14 @@ _et.ButtonGroup.value = property(lambda self: (lambda v: v if isinstance(v, list
 # page -> (URL path, sub-section switcher key or None, sub-sections)
 PAGES = {
     "Home": ("", None, [None]),
-    "Recruiting High Schoolers": ("recruiting", "sub_rec", ["Recruiting Intelligence", "Recruit Development Forecast", "Market Inefficiency Model"]),
-    "Transfer Portal": ("transfer-portal", "sub_trn", ["Transfer Production Translation", "Transfer Portal Analytics"]),
-    "Player Development": ("player-development", "sub_dev", ["Player Development Analytics", "Development Trajectory & Breakout Forecast"]),
-    "Roster Construction": ("roster-construction", "sub_ros", ["Roster Analytics", "Retention & Continuity Forecast", "Decision Tool"]),
-    "Competitive Edge Research": ("competitive-edge", "sub_cer", ["Championship Gap", "Big Ten Competitive Intelligence", "Game Analytics"]),
+    # sub-sections: the canonical 15 models (models.py), numbered, plus the unnumbered supporting analysis
+    "Recruiting High Schoolers": ("recruiting", "sub_rec", ["1 · Recruiting Intelligence", "2 · Recruit Development Forecast", "3 · Recruiting Fit & Scheme Projection"]),
+    "Transfer Portal": ("transfer-portal", "sub_trn", ["4 · Transfer Portal Analytics", "5 · Transfer Production Translation", "6 · Portal Fit & Acquisition Value"]),
+    "Player Development": ("player-development", "sub_dev", ["7 · Player Development Analytics", "8 · Development Trajectory & Breakout Forecast", "9 · Opportunity-Adjusted Development"]),
+    "Roster Construction": ("roster-construction", "sub_ros", ["10 · Roster Analytics", "11 · Retention & Continuity Forecast", "12 · Resource Allocation Optimization"]),
+    "Competitive Edge Research": ("competitive-edge", "sub_cer", ["13 · Market Inefficiency Model", "14 · Game Analytics", "15 · Big Ten Competitive Intelligence",
+                                                               "Supporting analysis: Championship Gap"]),
+    "Important Findings": ("important-findings", "sub_if", ["All", "Validated", "Preliminary", "Hypotheses", "Dashboard findings"]),
     "2026 Games": ("games-2026", None, [None]),
     "Research & Methods": ("research-methods", "sub_rm", ["All findings", "Module status", "Limitations & methods"]),
 }
@@ -75,10 +81,19 @@ def goto(at, page):
     return at.run()
 
 
+def L(sub):
+    """A sub-section's navigation label: canonical models are numbered ('13 · Market Inefficiency Model'); tests may name them without the number."""
+    import models
+    try:
+        return models.label(sub)
+    except KeyError:
+        return sub
+
+
 def open_view(at, page, sub=None):
     goto(at, page)
     if sub:
-        at.button_group(key=PAGES[page][1]).set_value([sub]).run()
+        at.button_group(key=PAGES[page][1]).set_value([sub if sub in PAGES[page][2] else L(sub)]).run()
     return at
 
 
@@ -132,11 +147,21 @@ def chart(at, trace_name):
     raise AssertionError(f"no chart with a trace named {trace_name!r}")
 
 
+# Columns renamed for readability in the improvement sprint, by the table's original columns: the values must be unchanged.
+RELABELLED = {("Player", "Pos", "Rating", "2025 output", "Chance"): {"Pos": "Position", "Rating": "Recruiting rating",
+                                                                   "2025 output": "First-season production (2025)",
+                                                                   "Chance": "Chance of becoming a strong producer by 2027"},
+              ("Year", "Correlation", "Players"): {"Year": "Year in the program", "Correlation": "Rating vs production (rank correlation)",
+                                                   "Players": "Players measured"}}
+
+
 def table_json(df):
-    """Table contents for comparison. The 2025-class Chance column is now a number (77) shown as 77%; the old app stored the text '77%'."""
+    """Table contents for comparison. The 2025-class Chance column is now a number (77) shown as 77%; the old app stored the text '77%'.
+    Columns renamed in the improvement sprint are compared under their new names (RELABELLED); their values are not changed."""
     df = df.copy()
     if "Chance" in df and df["Chance"].dtype == object:
         df["Chance"] = df["Chance"].str.rstrip("%").astype(int)
+    df = df.rename(columns=RELABELLED.get(tuple(df.columns), {}))
     for c in df.columns:
         if str(df[c].dtype) == "Int64":
             df[c] = df[c].astype(object).where(df[c].notna(), None)
@@ -330,7 +355,8 @@ class AppTests(unittest.TestCase):
             got = [(p.proto.label, p.proto.page) for p in at.get("page_link")]
             # page (and so keyboard) order: Home, the five families, then the secondary destinations (shown at the top right on wide screens by CSS only)
             self.assertEqual(got, [("Home", ""), ("Recruiting High Schoolers", "recruiting"), ("Transfer Portal", "transfer-portal"), ("Player Development", "player-development"),
-                                   ("Roster Construction", "roster-construction"), ("Competitive Edge Research", "competitive-edge"), ("2026 Games", "games-2026"),
+                                   ("Roster Construction", "roster-construction"), ("Competitive Edge Research", "competitive-edge"),
+                                   ("Important Findings", "important-findings"), ("2026 Games", "games-2026"),
                                    ("Research & Methods", "research-methods")])
 
     def test_every_view_renders_without_errors(self):
@@ -341,7 +367,7 @@ class AppTests(unittest.TestCase):
                 self.assertFalse(at.error, name)
                 self.assertNotIn("deprecated", texts(at), name)  # the Plotly keyword warning no longer appears on the page
                 n += 1
-            self.assertEqual(n, 18)
+            self.assertEqual(n, 26)  # Home, 15 models, 1 supporting analysis, 5 Important Findings filters, 2026 Games, 3 Research & Methods views
 
     def test_every_chart_holds_still_but_keeps_hover(self):
         """No drag-to-zoom, pan, box/lasso selection, scroll zoom, double-click rescale or toolbar on any chart; hover stays on."""
@@ -378,7 +404,7 @@ class AppTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
             a = run(make_app(d1, app_src=orig))
             self.assertFalse(a.exception)
-            self.assertEqual(len(tables(a)), 10); self.assertEqual(len(a.get("plotly_chart")), 11)  # (its Child 15 table is drawn by the current child15 code)
+            self.assertEqual(len(tables(a)), 11); self.assertEqual(len(a.get("plotly_chart")), 11)  # (its Child 15 tables, now summary + full numbers, are drawn by the current child15 code)
             # the old page-top result cards (Week n, opponent, score, Win/Loss): the same results are in the 2026 Games "What stood out" table
             cards = {f"Week {g['wk']}" for g in fixture()["games"]} | {f"**{g['opp']}**" for g in fixture()["games"]} | {f"### {g['pf']}–{g['pa']}" for g in fixture()["games"]} | {":green[**Win**]", ":red[**Loss**]"}
             old_text = {t for t in view_texts(a) if not t.startswith("What public data say about Penn State football")} - removed - cards
@@ -423,16 +449,16 @@ class AppTests(unittest.TestCase):
                          "A transfer is the better use of a roster spot only if he costs less than about 1.5 times a recruit's spot. Nobody has the real cost."):
                 self.assertIn(full, research)
             self.assertIn("Tested: the question was written down before running it", " ".join(research))  # the evidence-label legend now lives here
-            self.assertEqual([b.label for b in at.button][:5], ["Open the championship gap analysis", "Open the championship gap analysis", "Open recruiting and portal results",
+            self.assertEqual([b.label for b in at.button][:5], ["Open the championship gap analysis", "Open the championship gap analysis", "Open the Market Inefficiency Model",
                                                                 "Open the decision tool", "All eight findings and what the evidence labels mean"])
             for fi, page, sub, heading in ((0, "Competitive Edge Research", "Championship Gap", "How Penn State loses"), (1, "Competitive Edge Research", "Championship Gap", "How Penn State loses"),
-                                           (4, "Recruiting High Schoolers", "Market Inefficiency Model", "Do some programs get more from their recruits than ratings predict?  :blue-background[Tested]"),
-                                           (7, "Roster Construction", "Decision Tool", "Recruit or transfer?  :orange-background[Assumption]")):
+                                           (4, "Competitive Edge Research", "Market Inefficiency Model", "Do some programs get more from their recruits than ratings predict?  :blue-background[Tested]"),
+                                           (7, "Roster Construction", "Resource Allocation Optimization", "Recruit or transfer?  :orange-background[Assumption]")):
                 at = run(path)
                 at.button(key=f"go_finding_{fi}").click().run()
                 self.assertIn(heading, [s.value for s in at.subheader])  # the click runs the target analysis
                 goto(at, page)
-                self.assertEqual(at.button_group(key=PAGES[page][1]).value, [sub])
+                self.assertEqual(at.button_group(key=PAGES[page][1]).value, [L(sub)])
                 self.assertIn(heading, [s.value for s in at.subheader])
 
     def test_schedule_and_results_on_2026_games(self):
@@ -485,13 +511,14 @@ class AppTests(unittest.TestCase):
             self.assertTrue(pd_isna(seasons["Talent rank"].iloc[0])); self.assertEqual(int(seasons["Talent rank"].iloc[1]), 12)  # missing stays missing, not 0 or a guess
             self.assertEqual(len(seasons), 2)  # static table: every season shown, no scroll box
             self.assertIn("— means the rank is missing from the data for that season.", texts(gap))
-            wc = [x for x in tables(open_view(run(path), "Recruiting High Schoolers", "Recruit Development Forecast")) if "Chance" in x.columns][0]
-            self.assertEqual(wc["Chance"].tolist(), [5, 50, 77])
-            self.assertEqual(wc.sort_values("Chance")["Player"].tolist(), ["A", "B", "C"])  # as text, "5%" would sort after "50%" and "77%"
+            ch = "Chance of becoming a strong producer by 2027"
+            wc = [x for x in tables(open_view(run(path), "Recruiting High Schoolers", "Recruit Development Forecast")) if ch in x.columns][0]
+            self.assertEqual(wc[ch].tolist(), [5, 50, 77])
+            self.assertEqual(wc.sort_values(ch)["Player"].tolist(), ["A", "B", "C"])  # as text, "5%" would sort after "50%" and "77%"
 
     def test_decision_chart_follows_slider_and_rule(self):
         with tempfile.TemporaryDirectory() as d:
-            at = open_view(run(make_app(d)), "Roster Construction", "Decision Tool")
+            at = open_view(run(make_app(d)), "Roster Construction", "Resource Allocation Optimization")
             for cost, verdict in ((1.2, "Transfer"), (1.5, "Recruit"), (4.0, "Recruit")):  # fixture break-even is 1.5 at every position; equal counts as Recruit
                 at.slider(key="cost").set_value(cost).run()
                 spec = chart(at, "Break-even (95% range)")
@@ -503,17 +530,17 @@ class AppTests(unittest.TestCase):
     def test_choices_kept_when_moving_between_sub_sections(self):
         with tempfile.TemporaryDirectory() as d:
             path = make_app(d)
-            at = open_view(run(path), "Roster Construction", "Decision Tool")
+            at = open_view(run(path), "Roster Construction", "Resource Allocation Optimization")
             at.slider(key="cost").set_value(3.0).run()
             at.number_input(key="s_QB").set_value(5.0).run()
-            for sub in ("Roster Analytics", "Decision Tool"):
-                at.button_group(key="sub_ros").set_value([sub]).run()
+            for sub in ("Roster Analytics", "Resource Allocation Optimization"):
+                at.button_group(key="sub_ros").set_value([L(sub)]).run()
             self.assertEqual(at.slider(key="cost").value, 3.0)
             self.assertEqual(at.number_input(key="s_QB").value, 5.0)
             at = open_view(run(path), "Competitive Edge Research", "Big Ten Competitive Intelligence")
             at.radio(key="c15_window").set_value("2021-2025").run()
             for sub in ("Championship Gap", "Big Ten Competitive Intelligence"):
-                at.button_group(key="sub_cer").set_value([sub]).run()
+                at.button_group(key="sub_cer").set_value([L(sub)]).run()
             self.assertEqual(at.radio(key="c15_window").value, "2021-2025")
 
     def test_big_ten_view_renders(self):
