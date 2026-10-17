@@ -1,0 +1,910 @@
+{
+ "season": 2026,
+ "as_of": "2026-10-14",
+ "players": [
+  {
+   "id": "5304028",
+   "name": "Hunter Albright",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5146740",
+   "name": "Cooper Alexander",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5164630",
+   "name": "Owen Aliciene",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5079302",
+   "name": "Liam Andrews",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5230372",
+   "name": "Tyler Armstead",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5214556",
+   "name": "LaVar Arrington II",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5327757",
+   "name": "Christian Askew",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5081877",
+   "name": "Caleb Bacon",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5244022",
+   "name": "Mason Bandhauer",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5375169",
+   "name": "Josh Banks",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5092232",
+   "name": "Ryan Barker",
+   "position": "PK",
+   "group": "ST",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5082407",
+   "name": "Connor Barry",
+   "position": "QB",
+   "group": "QB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4801299",
+   "name": "Rocco Becht",
+   "position": "QB",
+   "group": "QB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5160163",
+   "name": "Ethan Black",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4899469",
+   "name": "Ty Blanding",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5160162",
+   "name": "Henry Boehme",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4870608",
+   "name": "Benjamin Brahmer",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5142240",
+   "name": "Caleb Brewer",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5146686",
+   "name": "Cael Brezina",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5215218",
+   "name": "Karon Brookins",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4921242",
+   "name": "Trevor Buhr",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4869519",
+   "name": "Gabe Burkle",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5141393",
+   "name": "Dayshaun Burnett",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5167309",
+   "name": "Alijah Carnell",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5278306",
+   "name": "Tyrell Chatman",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "4837460",
+   "name": "Audavion Collins",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5146889",
+   "name": "De'Andre Cook",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "4833357",
+   "name": "Jeremiah Cooper",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5079388",
+   "name": "Cooper Cousins",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5219077",
+   "name": "Logan Cunningham",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5215292",
+   "name": "Omarion Davis",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5141411",
+   "name": "Daryus Dixson",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "4916884",
+   "name": "Anthony Donkoh",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5192409",
+   "name": "Andrew Dufault",
+   "position": "LS",
+   "group": "ST",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5076123",
+   "name": "Kooper Ebel",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5290510",
+   "name": "Pete Eglitis",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5148535",
+   "name": "Brett Eskildsen",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5290514",
+   "name": "Kase Evans",
+   "position": "QB",
+   "group": "QB",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "4826502",
+   "name": "Ikenna Ezeogu",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5216958",
+   "name": "Peyton Falzone",
+   "position": "QB",
+   "group": "QB",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5209266",
+   "name": "Chris Fileppo",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5092612",
+   "name": "Jim Fitzgerald",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5244760",
+   "name": "Jackson Ford",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5160164",
+   "name": "Finn Furmanek",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5289329",
+   "name": "Amar'e Glover",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5084897",
+   "name": "Peter Gonzalez",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5208134",
+   "name": "Malachi Goodman",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5141483",
+   "name": "Max Granville",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5077502",
+   "name": "Carson Hansen",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5079496",
+   "name": "Donnie Harbour",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5312161",
+   "name": "Max Heffner",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5230375",
+   "name": "Liam Horan",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5141525",
+   "name": "Koby Howard",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5331989",
+   "name": "Tyshon Huff",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5214469",
+   "name": "Vaea Ikakoula",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5273821",
+   "name": "Amarion Jackson",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5214530",
+   "name": "Joshua Johnson",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5230176",
+   "name": "Keith Jones Jr.",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5141548",
+   "name": "Jahmir Joseph",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5276923",
+   "name": "Keian Kaiser",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5213238",
+   "name": "Yvan Kemajou",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5081870",
+   "name": "John Klosterman",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5211208",
+   "name": "Brian Kortovich",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5211194",
+   "name": "Kuol Kuol II",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5375168",
+   "name": "Jake LaVerde",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5160157",
+   "name": "Jack Lambert",
+   "position": "QB",
+   "group": "QB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5375167",
+   "name": "Jake Lukac",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5375165",
+   "name": "Hank Lustig",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5164316",
+   "name": "Alex Manske",
+   "position": "QB",
+   "group": "QB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5079577",
+   "name": "Quinton Martin Jr.",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5195461",
+   "name": "Ibn McDaniels",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5215273",
+   "name": "Alexander McPherson",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5160165",
+   "name": "Bobby Mears",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5160622",
+   "name": "Donte Nastasi",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5173604",
+   "name": "Marcus Neal Jr.",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5125968",
+   "name": "Armstrong Nnodim",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5097970",
+   "name": "Chimdy Onoh",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5294256",
+   "name": "Matthew Parker",
+   "position": "PK",
+   "group": "ST",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "4950395",
+   "name": "Jamison Patton",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5110454",
+   "name": "James Peoples",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5230373",
+   "name": "Aidan Probst",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4899484",
+   "name": "Andrew Rappleyea",
+   "position": "TE",
+   "group": "TE",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5327430",
+   "name": "Elijah Reeder",
+   "position": "DL",
+   "group": "DL",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5171684",
+   "name": "Brock Riker",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4899362",
+   "name": "Mason Robinson",
+   "position": "DE",
+   "group": "DL",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5296212",
+   "name": "Zay Robinson",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4918098",
+   "name": "Tony Rojas",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5094088",
+   "name": "Cristiano Rosa",
+   "position": "PK",
+   "group": "ST",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5092610",
+   "name": "Dominic Rulli",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5164361",
+   "name": "Lyrick Samuel",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5132642",
+   "name": "Garrett Sexton",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5162721",
+   "name": "D'Antae Sheffey",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5142598",
+   "name": "Cam Smith",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5092608",
+   "name": "Blaise Sokach-Minnick",
+   "position": "LS",
+   "group": "ST",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "4912067",
+   "name": "Chase Sowell",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5296214",
+   "name": "Hunter Sowell",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5195702",
+   "name": "Alex Tatsch",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "4427804",
+   "name": "Siale Taupaki",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5291142",
+   "name": "Lucas Tenbrock",
+   "position": "P",
+   "group": "ST",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5193689",
+   "name": "Xxavier Thomas",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2025,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5294651",
+   "name": "Nathan Tiyce",
+   "position": "P",
+   "group": "ST",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5198051",
+   "name": "Will Tompkins",
+   "position": "OL",
+   "group": "OL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5079611",
+   "name": "Vaboue Toure",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": 2024,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5100946",
+   "name": "Zion Tracy",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5220003",
+   "name": "Dallas Vakalahi",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5121541",
+   "name": "Cam Wallace",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": 2023,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5375166",
+   "name": "Jeremy Washington",
+   "position": "RB",
+   "group": "RB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5213295",
+   "name": "Ben Whitver",
+   "position": "WR",
+   "group": "WR",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "5290778",
+   "name": "Bryson Williams",
+   "position": "S",
+   "group": "DB",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  },
+  {
+   "id": "4431612",
+   "name": "Keanu Williams",
+   "position": "DT",
+   "group": "DL",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5375170",
+   "name": "Evan Wolff",
+   "position": "LB",
+   "group": "LB",
+   "recruit_class": null,
+   "recruit_type": null
+  },
+  {
+   "id": "5289311",
+   "name": "Josiah Zayas",
+   "position": "CB",
+   "group": "DB",
+   "recruit_class": 2026,
+   "recruit_type": "HighSchool"
+  }
+ ],
+ "provenance": {
+  "source": "CFBD /roster, via the PSFAL pipeline's player-season table",
+  "data": "player_seasons.parquet, SHA-256 cd67a64b438c13f0d033de0ca685630a80d7d3a238048b8afc6d915e72957525",
+  "checks": [
+   "Official 2026 roster (gopsusports.com/sports/football/roster), read 2026-10-17: lists the same 15 of the 29 recruits from the 2025 class as this snapshot, and none of the other 14."
+  ],
+  "built": "2026-10-17"
+ }
+}

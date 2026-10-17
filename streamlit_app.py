@@ -132,6 +132,49 @@ def _remove_result_annotated_schedule_rows(data):
 
 
 _remove_result_annotated_schedule_rows(D)
+
+
+def _recorded_roster_status():
+    """Verified roster statuses kept in this repository (roster_status.json), for players whose status the data file does not record yet.
+    Returns (mapping or None, problem or None); a missing file is normal, an unreadable one is reported, never guessed around."""
+    f = HERE / "roster_status.json"
+    if not f.exists():
+        return None, None
+    try:
+        return json.loads(f.read_text()).get("watchClassStatus"), None
+    except (ValueError, AttributeError):
+        return None, "roster_status.json could not be read; its statuses were ignored."
+
+
+RECORDED_STATUS, _STATUS_FILE_PROBLEM = _recorded_roster_status()
+
+
+def _roster_snapshot():
+    """The current-season roster snapshot: the data file's "rosterSnapshot" if it has a valid one, else roster_snapshot.json in this
+    repository (built by tools/build_roster_snapshot.py). Returns (snapshot or None, problems)."""
+    problems = []
+    f = HERE / "roster_snapshot.json"
+    try:
+        repo = json.loads(f.read_text()) if f.exists() else None
+    except ValueError:
+        repo, problems = None, ["roster_snapshot.json could not be read; roster status was not taken from it."]
+    for obj in (D.get("rosterSnapshot"), repo):
+        snap, problem = data_check.roster_snapshot(obj, SEASON, _today())
+        if problem:
+            problems.append(problem)
+        if snap:
+            return snap, problems
+    return None, problems
+
+
+def _development_by_star():
+    """Separate four- and five-star development series from development_by_star.json in this repository (built by
+    tools/build_development_by_star.py from the PSFAL player-season table), or None if the file is missing or unreadable."""
+    f = HERE / "development_by_star.json"
+    try:
+        return json.loads(f.read_text()) if f.exists() else None
+    except ValueError:
+        return None
 ui.inject_css()
 
 
@@ -453,20 +496,38 @@ def _recruiting_intelligence():
 def _recruit_forecast():
     _model_header('Recruit Development Forecast')
     st.markdown("**Penn State's 2025 class: most likely strong producers by 2027**")
-    statuses, problems = data_check.player_status(D)
+    roster, roster_problems = _roster_snapshot()
+    statuses, problems = data_check.player_status(D, RECORDED_STATUS, roster)
+    problems += ([_STATUS_FILE_PROBLEM] if _STATUS_FILE_PROBLEM else []) + roster_problems
     base = ["Player", "Position", "Recruiting rating", "First-season production (2025)", CHANCE]
     wc = pd.DataFrame(D["watchClass"], columns=base)
-    wc[CHANCE] = (wc[CHANCE] * 100).round(0).astype(int)  # same rounding as before; kept as a number so the column sorts numerically
+    # ranks follow the ORIGINAL chances, never changed: "Original rank" is the place in the full list as generated, "Rank" the order among
+    # players confirmed on the current roster (the same order with departed players taken out)
+    # a row without a valid chance (0 to 1) gets no chance and no rank, and is reported; it never takes another player's place
+    wc[CHANCE] = pd.to_numeric(wc[CHANCE], errors="coerce").where(lambda c: c.between(0, 1))
+    problems += [f"{p}: no valid forecast chance in the data file; shown without a chance or rank." for p in wc.loc[wc[CHANCE].isna(), "Player"]]
+    wc["Original rank"] = wc[CHANCE].rank(ascending=False, method="min").astype("Int64")
+    wc[CHANCE] = (wc[CHANCE] * 100).round(0).astype("Int64")  # same rounding as before; kept as a number so the column sorts numerically
     wc["Roster status"] = [statuses[p]["status"] for p in wc["Player"]]
     wc["Status verified on"] = [statuses[p]["verified"] for p in wc["Player"]]
-    fmt = {"Recruiting rating": "{:.2f}", CHANCE: "{:d}%"}
+    wc["Status source"] = [statuses[p]["source"] or "not recorded" for p in wc["Player"]]
+    is_current = wc["Roster status"] == "current"
+    wc.loc[is_current, "Rank"] = wc.loc[is_current, "Original rank"].astype(float).rank(method="min")  # float: a missing rank stays missing
+    wc = wc.sort_values("Original rank", kind="stable")
+    fmt = {"Recruiting rating": "{:.2f}", CHANCE: "{:d}%", "Rank": "{:.0f}"}
+    first = ["Player", "Original rank"]
+    rest = base[1:]
     # (statuses, heading, columns, note). Only a dated "current" status puts a player among current candidates; nothing is inferred.
-    groups = ((("current",), "Current Penn State candidates", base + ["Status verified on"],
-               "Players the data record as on the current Penn State roster, with the date that was checked."),
-              (("transferred", "departed"), "Transferred or departed: historical predictions", base + ["Roster status", "Status verified on"],
+    groups = ((("current",), "Current Penn State candidates", ["Player", "Rank", "Original rank"] + rest + ["Status verified on"],
+               "Players on the current Penn State roster, with the date that was checked. Rank is their order by the original forecast among "
+               "current players; Original rank is their place in the full list as it was generated. No chance has been changed."),
+              (("transferred", "departed"), "Transferred or departed: historical predictions",
+               first + rest + ["Roster status", "Status verified on", "Status source"],
                "These chances were generated before the player left. They are kept as a record of what the forecast said, not as current candidates."),
-              (("unknown",), "Current status unknown", base + ["Status verified on"], "The data record that these players' current status could not be determined."),
-              (("not verified",), "Roster status not verified", base,
+              (("unknown",), "Current status unknown: needs review", first + rest + ["Status verified on", "Status source"],
+               "These players' roster status could not be resolved (for example, a name that does not match the roster exactly). They are not "
+               "shown as current candidates until checked."),
+              (("not verified",), "Roster status not verified", first + rest,
                "Shown as originally generated. The data file does not record whether these players are still at Penn State, so none is presented as a "
                "current candidate. A player may have transferred or left since the list was made."))
     current = wc[wc["Roster status"] == "current"]
@@ -475,22 +536,36 @@ def _recruit_forecast():
         if want == ("current",):
             st.markdown(f"**{title}**")
             if len(rows):
-                ui.table(rows[cols], "watch_class_current", fmt)
+                ui.table(rows[cols], "watch_class_current", fmt, pin_first=True)  # eight columns: scrolls sideways on a phone, player pinned
                 st.caption(note)
             else:
                 st.info("No player in this list has a verified current Penn State roster status in the data, so nobody is shown here as a current "
                         "candidate.", icon=":material/person_search:")
         elif len(rows):
             st.markdown(f"**{title}**")
-            ui.table(rows[cols], "watch_class" if want == ("not verified",) else f"watch_class_{want[0]}", fmt)
+            # tables with a long source note scroll sideways with the player pinned rather than squeezing every column
+            ui.table(rows[cols], "watch_class" if want == ("not verified",) else f"watch_class_{want[0]}", fmt, pin_first="Status source" in cols)
             st.caption(note)
+    missing = data_check.unscored_class_members(D, roster, 2025)
+    if missing:
+        st.markdown(f"**On the {roster['season']} roster but not in this forecast**")
+        ui.table(pd.DataFrame([{"Player": r["name"], "Position": r.get("position") or "—", "Why not scored": data_check.unscored_reason(r)}
+                               for r in missing]), "watch_class_unscored", pin_first=True)
+        st.caption(f"{len(missing)} recruits from the 2025 class are on the roster snapshot but not in the forecast list. The model and selection rule "
+                   "behind the list are not recorded, so no chance is computed for them here and they are not ranked; this is not a judgment "
+                   "that they will not become strong producers.")
     st.caption("A ranking aid with wide uncertainty.")
     for p in problems:
         st.caption(f"Data note: {p}")
     fr = data_check.section_freshness(D, "watchClass")
     checked = sorted({s["verified"] for s in statuses.values() if s["verified"]})
+    snap = ""
+    if roster:
+        prov = roster.get("provenance") or {}
+        snap = (f"  \n**Roster snapshot:** {roster['season']} roster as of {roster['as_of']}, {prov.get('source', 'source not recorded')}, "
+                f"{len(roster['players'])} players" + "".join(f". {c}" for c in prov.get("checks") or []))
     st.caption("**List generated:** " + (f"as stated in the data file: “{fr['stated']}”" if fr["stated"] else "date not recorded in the data")
-               + "  \n**Roster status checked:** " + (", ".join(checked) if checked else "not recorded in the data"))
+               + "  \n**Roster status checked:** " + (", ".join(checked) if checked else "not recorded in the data") + snap)
     with st.container(border=True, key="panel_forecast_guide"):
         st.markdown("**How to read this forecast**")
         st.markdown(
@@ -620,23 +695,57 @@ def _development_analytics():
     _status("Development")
     st.subheader("Production by year in the program, for recruits who stayed")
     st.write("Average production percentile among players at the same position. Later years include only players who stayed, so catching up is partly who remained.")
-    T = D["traj"]
+    # Four- and five-star recruits are drawn separately only from series measured separately; the combined series is never split by guessing.
+    # Order: a split in the dashboard data file, else development_by_star.json (this repository), else the data file's combined series.
+    # All lines on the chart always come from ONE source, so their cutoffs and method match.
+    split = ("star5", "star4", "star3", "star2")
+    T, source = data_check.star_series(D["traj"], split), "the dashboard data file"
+    if T is None:
+        F = _development_by_star()
+        T = data_check.star_series(F, split) if F else None
+        if T is not None:
+            p = F.get("provenance") or {}
+            source = (f"{p.get('label', 'development_by_star.json')}, computed with the PSFAL pipeline's development measure "
+                      f"(development_by_star.json, built {p.get('built', 'date not recorded')}). The dashboard data file has only a combined "
+                      "four- and five-star series")
+    if T is not None:
+        series = (("4 stars", "star4", PSU, "circle"),
+                  ("5 stars", "star5", LIGHT, "diamond"),
+                  ("3 stars", "star3", ACCENT, "square"),
+                  ("2 stars or fewer", "star2", NEUTRAL, "x"))
+    else:
+        T, source = D["traj"], None
+        series = (("4 and 5 stars (combined; source split unavailable)", "star45", PSU, "circle"),
+                  ("3 stars", "star3", ACCENT, "square"),
+                  ("2 stars or fewer", "star2", NEUTRAL, "x"))
     fig = go.Figure()
-    for name, key, col, sym in (("4 and 5 stars", "star45", PSU, "circle"), ("3 stars", "star3", LIGHT, "diamond"), ("2 stars or fewer", "star2", ACCENT, "square")):
+    counts = T.get("players") or {}
+    for name, key, col, sym in series:
+        n = counts.get(key)
         fig.add_scatter(x=T["years"], y=T[key], mode="lines+markers", name=name, line=dict(color=col, width=3.5),
-                        marker=dict(symbol=sym, size=10, color=col, line=dict(color=PSU if col == LIGHT else "white", width=1.5)),
-                        hovertemplate=f"{name}: percentile %{{y:.0f}}<extra></extra>")
-        fig.add_annotation(x=T["years"][-1], y=T[key][-1], text=f"<b>{T[key][-1]:.0f}</b>", showarrow=False, xanchor="left", xshift=9, font=dict(size=12, color=INK))
-    # the two upper lines end two points apart in year 5; nudge their names apart so they do not overlap
-    ends = sorted(range(3), key=lambda i: -fig.layout.annotations[i].y)
-    for rank, i in enumerate(ends[:2]):
+                        marker=dict(symbol=sym, size=10, color=col, line=dict(color="white", width=1.5)),
+                        customdata=n, hovertemplate=f"{name}: percentile %{{y:.0f}}" + (" (%{customdata} players)" if n else "") + "<extra></extra>")
+        last = next(((x, y) for x, y in zip(reversed(T["years"]), reversed(T[key])) if y is not None), None)
+        if last:
+            fig.add_annotation(x=last[0], y=last[1], text=f"<b>{last[1]:.0f}</b>", showarrow=False, xanchor="left", xshift=9, font=dict(size=12, color=INK))
+    # Nudge the two highest end labels apart only when their values nearly overlap.
+    if len(fig.layout.annotations) >= 2:
+        ends = sorted(range(len(fig.layout.annotations)), key=lambda i: -fig.layout.annotations[i].y)
         if abs(fig.layout.annotations[ends[0]].y - fig.layout.annotations[ends[1]].y) < 6:
-            fig.layout.annotations[i].yshift = 9 if rank == 0 else -9
+            fig.layout.annotations[ends[0]].yshift = 9
+            fig.layout.annotations[ends[1]].yshift = -9
     fig.add_hline(y=50, line=dict(color=NEUTRAL, width=1, dash="dot"), layer="below")  # a percentile scale: 50 is the middle player at the position
     fig.update_layout(hovermode="x unified")
     fig.update_xaxes(title="Year in the program", tickvals=T["years"], range=[0.8, T["years"][-1] + 0.4], tickprefix="Year ", hoverformat="d")
     fig.update_yaxes(range=[0, 100], title="Production percentile (50 = middle of the position group)")
     ui.plot(style(fig, 360))
+    if source is None:
+        st.caption("The current data source combines four- and five-star recruits. To show separate lines, update traj.star4 and traj.star5 in the data file; this chart does not estimate or split those values.")
+    else:
+        small = [f"{name.lower()}: {', '.join(map(str, counts[key]))}" for name, key, *_ in series if key in counts and min(counts[key]) < 5]
+        st.caption(f"Source: {source}. Each point is the average of the recruits in that group and year (hover for the number of players)."
+                   + (f" Some groups are very small, so their lines can swing on one player. Players in years 1 to {T['years'][-1]}, "
+                      + "; ".join(small) + "." if small else ""))
     st.markdown("**Production carries over, improvement does not**  " + BADGE["descriptive"])
     st.write("A player's production percentile correlates **0.71** with his next-year percentile. His year-to-year change correlates **−0.27** with the change the year before "
              "(partly because percentiles stop at 0 and 100). A score built on improvement is not supported. Some players do keep beating their recruiting profile (0.54).")

@@ -19,14 +19,15 @@ from streamlit.util import calc_md5  # noqa: E402
 os.environ["PSFAL_TODAY"] = "2026-09-01"
 
 
-def make_app(tmp, with_report=True, report_text=None, app_src=None, data=None):
-    """Copy the app into a temp folder with the synthetic fixture. `data` (a modified copy of fixture()) is written to the temp folder only."""
+def make_app(tmp, with_report=True, report_text=None, app_src=None, data=None, without=()):
+    """Copy the app into a temp folder with the synthetic fixture. `data` (a modified copy of fixture()) is written to the temp folder only.
+    `without` names repository data files to leave out (for example development_by_star.json, to test the fallback)."""
     tmp = Path(tmp)
     (tmp / "streamlit_app.py").write_text(app_src if app_src is not None else (ROOT / "streamlit_app.py").read_text())
     shutil.copy(ROOT / "ui.py", tmp / "ui.py")
     shutil.copy(ROOT / "data_check.py", tmp / "data_check.py")
-    for extra in ("models.py", "findings.py"):  # added in the improvement sprint
-        if (ROOT / extra).exists():
+    for extra in ("models.py", "findings.py", "roster_status.json", "roster_snapshot.json", "development_by_star.json"):  # added since the improvement sprint
+        if (ROOT / extra).exists() and extra not in without:
             shutil.copy(ROOT / extra, tmp / extra)
     (tmp / "dashboard_data.json").write_text(json.dumps(data if data is not None else fixture()))
     shutil.copytree(ROOT / "child15", tmp / "child15", ignore=shutil.ignore_patterns("__pycache__", "*.md"))
@@ -154,14 +155,20 @@ RELABELLED = {("Player", "Pos", "Rating", "2025 output", "Chance"): {"Pos": "Pos
               ("Year", "Correlation", "Players"): {"Year": "Year in the program", "Correlation": "Rating vs production (rank correlation)",
                                                    "Players": "Players measured"}}
 
+# Columns added to existing tables, left out when comparing with the old app: the forecast ranks are derived only from the chances,
+# which are compared.
+ADDED = ("Rank", "Original rank")
+
 
 def table_json(df):
     """Table contents for comparison. The 2025-class Chance column is now a number (77) shown as 77%; the old app stored the text '77%'.
-    Columns renamed in the improvement sprint are compared under their new names (RELABELLED); their values are not changed."""
+    Columns renamed in the improvement sprint are compared under their new names (RELABELLED); their values are not changed. Columns in
+    ADDED are left out."""
     df = df.copy()
     if "Chance" in df and df["Chance"].dtype == object:
         df["Chance"] = df["Chance"].str.rstrip("%").astype(int)
     df = df.rename(columns=RELABELLED.get(tuple(df.columns), {}))
+    df = df.drop(columns=[c for c in ADDED if c in df.columns])
     for c in df.columns:
         if str(df[c].dtype) == "Int64":
             df[c] = df[c].astype(object).where(df[c].notna(), None)
@@ -413,7 +420,9 @@ class AppTests(unittest.TestCase):
             counts = {"five games in 2026": "three games in 2026", "Five games, ranked": "The number of games covered is not stated in the data, ranked"}
             old_text = {next((t.replace(k, v) for k, v in counts.items() if k in t), t) for t in old_text}
             new_dfs, new_charts, new_text = set(), [], set()
-            for _, b in every_view(make_app(d2)):
+            # same data in as the old app: without development_by_star.json, whose separate star series replace the development chart's lines
+            # by design (tested in test_sprint.SplitStarDevelopmentChart)
+            for _, b in every_view(make_app(d2, without=("development_by_star.json",))):
                 new_dfs |= {table_json(x) for x in tables(b)}
                 new_charts += [chart_values(c) for c in b.get("plotly_chart")]
                 new_text |= view_texts(b)
@@ -513,7 +522,7 @@ class AppTests(unittest.TestCase):
             self.assertIn("— means the rank is missing from the data for that season.", texts(gap))
             ch = "Chance of becoming a strong producer by 2027"
             wc = [x for x in tables(open_view(run(path), "Recruiting High Schoolers", "Recruit Development Forecast")) if ch in x.columns][0]
-            self.assertEqual(wc[ch].tolist(), [5, 50, 77])
+            self.assertEqual(wc[ch].tolist(), [77, 50, 5])  # listed by rank (highest chance first)
             self.assertEqual(wc.sort_values(ch)["Player"].tolist(), ["A", "B", "C"])  # as text, "5%" would sort after "50%" and "77%"
 
     def test_decision_chart_follows_slider_and_rule(self):

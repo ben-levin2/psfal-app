@@ -1,0 +1,10 @@
+{
+  "about": "Verified roster status of players in the Recruit Development Forecast (2025 class), kept under version control because the dashboard data file is hand-maintained in the deployment settings. Same format as the data file's watchClassStatus; the later verification date wins. A status never changes a forecast: it only moves the original prediction to the matching group. Add an entry only with a verification date and a source.",
+  "watchClassStatus": {
+    "Chaz Coleman": {
+      "status": "transferred",
+      "verified": "2026-10-17",
+      "source": "Not on Penn State's 2026 roster (CFBD roster data, pulled by 2026-10-14). Entered the transfer portal in January 2026 and committed to Tennessee (CBS Sports, 2026-01-10). Medically disqualified and removed from Tennessee's roster (CBS Sports, 2026-06-26; 247Sports)."
+    }
+  }
+}
